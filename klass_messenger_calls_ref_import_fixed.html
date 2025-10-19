@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Klass Messenger — calls fixed</title>
+  <style>
+    :root{--accent:#2563eb}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f4f6f8;color:#111}
+    header{background:#0f172a;color:#fff;padding:12px 16px}
+    .container{max-width:1100px;margin:18px auto;padding:12px}
+    .grid{display:grid;grid-template-columns:260px 260px 1fr;gap:12px}
+    .card{background:#fff;border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(10,10,10,.06)}
+    .list{height:520px;overflow:auto}
+    .chat-window{display:flex;flex-direction:column;height:520px}
+    .messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:10px}
+    .msg-row{display:flex;gap:8px;align-items:flex-end}
+    .msg-row.me{justify-content:flex-end}
+    .bubble{max-width:72%;padding:8px;border-radius:10px}
+    .me .bubble{background:#DCFCE7}
+    .them .bubble{background:#EEF2FF}
+    .avatar{width:36px;height:36px;border-radius:50%;object-fit:cover}
+    .controls{display:flex;gap:8px;padding-top:8px;align-items:center}
+    input,button,textarea,select{padding:8px;border-radius:8px;border:1px solid #d0d6db}
+    button{background:var(--accent);color:#fff;border:none}
+    .small{font-size:12px;color:#666}
+    .file-thumb{max-width:220px;display:block;margin-top:6px;border-radius:6px}
+    .meta{font-size:12px;color:#666;margin-top:4px}
+    .top-notice{position:fixed;left:50%;transform:translateX(-50%);top:12px;background:#111;color:#fff;padding:8px 12px;border-radius:8px;display:none;z-index:999}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .incoming-call {
+      position:fixed; left:50%; top:120px; transform:translateX(-50%); background:#fff; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.2);
+      padding:12px 16px; display:none; z-index:3000; width:320px;
+    }
+    .incoming-call .txt{margin-bottom:8px}
+    @media(max-width:980px){ .grid{grid-template-columns:1fr} .list{height:160px} .chat-window{height:420px} }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Klass Messenger 😈</strong>
+  </header>
+
+  <div class="container">
+    <div class="grid">
+      <div class="card" id="authCard">
+        <h3>Аккаунт</h3>
+        <div id="auth-panel">
+          <input id="email" placeholder="Email" autocomplete="username" />
+          <input id="password" placeholder="Пароль" type="password" autocomplete="current-password" />
+          <input id="displayName" placeholder="Имя (публичное)" />
+          <label style="display:flex;gap:8px;align-items:center"><input id="avatarInput" type="file" accept="image/*" /> <span class="small">Аватар (опционально)</span></label>
+          <div class="actions">
+            <button id="btnRegister">Зарегистрироваться</button>
+            <button id="btnLogin">Войти</button>
+            <button id="btnGuest">Гостевой вход</button>
+            <button id="btnReset">Забыли пароль?</button>
+            <button id="btnGoogle" style="background:#DB4437">Войти с Google</button>
+          </div>
+          <p class="small">Для полноценной работы включите Authentication + Realtime Database в Firebase Console.</p>
+        </div>
+        <div id="user-panel" style="display:none">
+          <div style="display:flex;gap:8px;align-items:center">
+            <img id="meAvatar" class="avatar" src="" style="display:none" />
+            <div>
+              <strong id="meName"></strong>
+              <div class="small" id="meEmail"></div>
+            </div>
+          </div>
+          <div style="margin-top:8px" class="actions">
+            <button id="btnLogout">Выйти</button>
+            <button id="btnCreateGroup">Создать группу</button>
+            <button id="btnMyGroups">Мои группы</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Пользователи</h3>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="searchInput" placeholder="Поиск по имени/email" style="flex:1" />
+          <button id="btnSearch">Поиск</button>
+        </div>
+        <div class="list" id="usersList"></div>
+      </div>
+
+      <div class="card chat-window">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong id="chatTitle">Личные сообщения</strong>
+            <div class="small" id="chatSub"></div>
+          </div>
+          <div class="actions">
+            <select id="modeSelect"><option value="pm">1-на-1</option><option value="group">Группа</option></select>
+            <select id="groupsSelect" style="display:none"></select>
+            <button id="btnRefresh">Обновить</button>
+          </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="controls">
+          <button id="callBtn" class="call-btn" style="background:#10b981">📞 Позвонить</button>
+          <button id="endCallBtn" class="call-btn" style="background:#ef4444;display:none">❌ Завершить</button>
+
+          <input id="msgInput" placeholder="Введите сообщение" style="flex:1" />
+          <input id="fileInput" type="file" />
+          <button id="btnSend">Отправить</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="small" style="margin-top:12px">Группы и сообщения сохраняются в Realtime Database. Файлы хранятся в виде base64 в базе (для бесплатного использования).</p>
+  </div>
+
+  <div id="notice" class="top-notice"></div>
+
+  <script type="module">
+    // ============ ТВОЯ конфигурация Firebase ==============
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTwQJ4z3vuj_3BFSfUCryooN3IYH-MKsE",
+      authDomain: "best-messenger-9db3f.firebaseapp.com",
+      databaseURL: "https://best-messenger-9db3f-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "best-messenger-9db3f",
+      storageBucket: "best-messenger-9db3f.firebasestorage.app",
+      messagingSenderId: "626528479187",
+      appId: "1:626528479187:web:7e7b094416ce8d98e57126"
+    };
+    // ======================================================
+
+    const useFirebase = !!(firebaseConfig && firebaseConfig.apiKey);
+    const LOCAL_KEY = 'klass_messenger_v3_local';
+
+    // UI refs
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    const displayNameEl = document.getElementById('displayName');
+    const avatarInput = document.getElementById('avatarInput');
+    const btnRegister = document.getElementById('btnRegister');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnGuest = document.getElementById('btnGuest');
+    const btnReset = document.getElementById('btnReset');
+    const btnGoogle = document.getElementById('btnGoogle');
+    const btnLogout = document.getElementById('btnLogout');
+    const authPanel = document.getElementById('auth-panel');
+    const userPanel = document.getElementById('user-panel');
+    const meName = document.getElementById('meName');
+    const meEmail = document.getElementById('meEmail');
+    const meAvatar = document.getElementById('meAvatar');
+
+    const searchInput = document.getElementById('searchInput');
+    const btnSearch = document.getElementById('btnSearch');
+    const usersList = document.getElementById('usersList');
+
+    const messagesEl = document.getElementById('messages');
+    const msgInput = document.getElementById('msgInput');
+    const fileInput = document.getElementById('fileInput');
+    const btnSend = document.getElementById('btnSend');
+
+    const chatTitle = document.getElementById('chatTitle');
+    const chatSub = document.getElementById('chatSub');
+    const modeSelect = document.getElementById('modeSelect');
+    const groupsSelect = document.getElementById('groupsSelect');
+    const btnCreateGroup = document.getElementById('btnCreateGroup');
+    const btnMyGroups = document.getElementById('btnMyGroups');
+    const btnRefresh = document.getElementById('btnRefresh');
+
+    const notice = document.getElementById('notice');
+    function showNotice(text, time=3000){ notice.textContent = text; notice.style.display='block'; setTimeout(()=>notice.style.display='none', time); }
+
+    // helpers local
+    function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LOCAL_KEY)) || {users:{},groups:{},chats:{}} }catch(e){return {users:{},groups:{},chats:{}} } }
+    function saveLocal(d){ localStorage.setItem(LOCAL_KEY, JSON.stringify(d)); }
+    function uid(){ return 'id'+Math.random().toString(36).slice(2,9); }
+    function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
+    function timeStr(ts){ const d=new Date(ts); return d.toLocaleString(); }
+
+    let currentUser = null; let activeChatUid = null; let activeGroupId = null;
+
+    // firebase vars
+    let app, auth, db;
+
+    async function init(){
+      if(useFirebase){
+        try{
+          const { initializeApp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
+          const authMod = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+          const dbMod = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js');
+          const { ref } = dbMod;
+          app = initializeApp(firebaseConfig);
+          auth = authMod.getAuth(app);
+          db = dbMod.getDatabase(app);
+          setupFirebase(authMod, dbMod);
+          console.log('Firebase ready');
+        }catch(e){ console.error('Firebase init failed', e); showNotice('Firebase недоступен — локальный режим'); startLocal(); }
+      }else{ startLocal(); }
+
+      // expose minimal handles for the call script to use
+      window.__klass_db = db;
+      window.__klass_auth = auth;
+      window.__klass_useFirebase = useFirebase;
+      window.__klass_getCurrentUser = ()=> currentUser;
+      window.__klass_getActiveChatUid = ()=> activeChatUid;
+      window.__klass_setActiveChatUid = (v)=>{ activeChatUid = v; };
+    }
+
+    // ---------------- Firebase implementation ----------------
+    function setupFirebase(authMod, dbMod){
+      const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, onAuthStateChanged, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } = authMod;
+      const { ref, set, push, onValue, get } = dbMod;
+
+      btnRegister.onclick = async ()=>{
+        const email = emailEl.value.trim(); const pass = passEl.value; const displayName = displayNameEl.value.trim()||email.split('@')[0];
+        if(!email||!pass){ showNotice('Введите email и пароль'); return; }
+        let avatarData = null; if(avatarInput.files && avatarInput.files[0]) avatarData = await fileToDataURL(avatarInput.files[0]);
+        try{
+          const cred = await createUserWithEmailAndPassword(auth, email, pass);
+          try{ await updateProfile(cred.user, { displayName }); }catch(e){}
+          await set(ref(db,'users/'+cred.user.uid), { uid:cred.user.uid, email, displayName, avatar:avatarData||null });
+          showNotice('Зарегистрированы и вошли');
+        }catch(err){ console.error(err); if(err.code==='auth/email-already-in-use'){ try{ await signInWithEmailAndPassword(auth,email,pass); showNotice('Email уже есть — автоматический вход'); }catch(e){ showNotice('Email занят — используйте вход'); } } else showNotice(err.message||'Ошибка'); }
+      };
+
+      btnLogin.onclick = async ()=>{
+        const email = emailEl.value.trim(); const pass = passEl.value;
+        if(!email||!pass){ showNotice('Введите email и пароль'); return; }
+        try{ await signInWithEmailAndPassword(auth, email, pass); showNotice('Вход выполнен'); }catch(err){ console.error(err); showNotice(err.message||'Ошибка входа'); }
+      };
+
+      btnReset.onclick = async ()=>{
+        const email = prompt('Введите email для восстановления пароля:'); if(!email) return; try{ await sendPasswordResetEmail(auth,email); alert('Письмо для восстановления отправлено'); }catch(e){ alert('Ошибка: '+(e.message||e)); }
+      };
+
+      btnGoogle.onclick = async ()=>{
+        try{
+          const provider = new GoogleAuthProvider();
+          const result = await signInWithPopup(auth, provider);
+          const user = result.user;
+          // create or update user record in DB
+          const snap = await get(ref(db,'users/'+user.uid));
+          const existing = snap.val();
+          const avatar = (user.photoURL)?user.photoURL:null;
+          const displayName = user.displayName || user.email.split('@')[0];
+          await set(ref(db,'users/'+user.uid), { uid:user.uid, email:user.email, displayName, avatar });
+          showNotice('Вход через Google выполнен');
+        }catch(e){ console.error(e); showNotice('Ошибка Google-входа'); }
+      };
+
+      btnGuest.onclick = ()=>{ const g = { uid:uid(), email:'guest@local', displayName:'Гость_'+Math.random().toString(36).slice(2,6), avatar:null, guest:true }; currentUser=g; onLoginLocalLike(); showNotice('Вошли как гость (локально)'); };
+
+      btnLogout.onclick = async ()=>{ try{ await signOut(auth); }catch(e){ console.log(e); currentUser=null; authPanel.style.display=''; userPanel.style.display='none'; usersList.innerHTML=''; messagesEl.innerHTML=''; } };
+
+      onAuthStateChanged(auth, async user=>{
+        if(user){ const snap = await get(ref(db,'users/'+user.uid)); const data = snap.val() || { uid:user.uid, email:user.email, displayName:user.displayName||user.email, avatar:user.photoURL||null }; currentUser = data; onLoginFirebase(); }
+        else { currentUser=null; activeChatUid=null; activeGroupId=null; authPanel.style.display=''; userPanel.style.display='none'; usersList.innerHTML=''; messagesEl.innerHTML=''; }
+      });
+
+      async function onLoginFirebase(){ authPanel.style.display='none'; userPanel.style.display='block'; meName.textContent=currentUser.displayName; meEmail.textContent=currentUser.email; if(currentUser.avatar){ meAvatar.src=currentUser.avatar; meAvatar.style.display='inline-block'; } else meAvatar.style.display='none'; await set(ref(db,'users/'+currentUser.uid), currentUser); loadUsersFirebase(); loadMyGroups(); }
+
+      async function loadUsersFirebase(){ const snap = await get(ref(db,'users')); const data = snap.val()||{}; renderUsers(Object.values(data)); }
+
+      btnSearch.onclick = async ()=>{ const q=(searchInput.value||'').trim().toLowerCase(); if(!q){ loadUsersFirebase(); return; } const snap = await get(ref(db,'users')); const arr = Object.values(snap.val()||{}).filter(u=> (u.displayName||u.email||'').toLowerCase().includes(q)); renderUsers(arr); };
+
+      function renderUsers(arr){ usersList.innerHTML=''; arr.sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||'')); arr.forEach(u=>{ if(!u||u.uid===currentUser.uid) return; const el=document.createElement('div'); el.style.padding='8px'; el.style.borderBottom='1px solid #f0f0f0'; el.style.display='flex'; el.style.gap='8px'; el.style.alignItems='center'; el.innerHTML = `${u.avatar?'<img src="'+u.avatar+'" class="avatar"/>':''}<div style="flex:1"><strong>${escapeHtml(u.displayName||u.email)}</strong><div class="small">${escapeHtml(u.email||'')}</div></div>`; el.onclick = ()=>{ modeSelect.value='pm'; groupsSelect.style.display='none'; openChatFirebase(u.uid,u.displayName||u.email); }; usersList.appendChild(el); }); }
+
+      function makeChatId(a,b){ return [a,b].sort().join('_'); }
+
+      function openChatFirebase(uid,name){ activeGroupId=null; activeChatUid=uid; // expose for call script
+        window.__klass_setActiveChatUid(uid);
+        chatTitle.textContent = name; chatSub.textContent = 'Личный чат'; messagesEl.innerHTML=''; const chatId = makeChatId(currentUser.uid,uid); const msgsRef = ref(db,'chats/'+chatId+'/messages'); onValue(msgsRef, snap=>{ const v = snap.val()||{}; const arr = Object.values(v); messagesEl.innerHTML=''; arr.forEach(m=>renderMsg(m)); messagesEl.scrollTop = messagesEl.scrollHeight; }); }
+
+      // groups
+      btnCreateGroup.onclick = async ()=>{ const name = prompt('Название группы:'); if(!name) return; const desc = prompt('Краткое описание (опционально):')||''; const groupId = uid(); const members = [currentUser.email]; await set(ref(db,'groups/'+groupId), { id:groupId, name, desc, owner:currentUser.uid, members }); showNotice('Группа создана'); loadMyGroups(); }
+
+      async function loadMyGroups(){ const snap = await get(ref(db,'groups')); const data = snap.val()||{}; const groups = Object.values(data).filter(g=> (g.members||[]).includes(currentUser.email)); groupsSelect.innerHTML=''; groupsSelect.style.display='inline-block'; groups.forEach(g=>{ const opt = document.createElement('option'); opt.value=g.id; opt.textContent = g.name; groupsSelect.appendChild(opt); }); if(groups.length===0){ groupsSelect.style.display='none'; }
+      }
+
+      btnMyGroups.onclick = ()=>{ loadMyGroups(); showNotice('Загружены ваши группы'); }
+
+      groupsSelect.onchange = ()=>{ const id = groupsSelect.value; if(!id) return; openGroup(id); }
+
+      async function openGroup(id){ activeChatUid=null; activeGroupId=id; window.__klass_setActiveChatUid(null); const snap = await get(ref(db,'groups/'+id)); const g = snap.val(); chatTitle.textContent = g.name; chatSub.textContent = g.desc||('Участников: '+(g.members||[]).length); messagesEl.innerHTML=''; const msgsRef = ref(db,'groups/'+id+'/messages'); onValue(msgsRef, snap=>{ const v = snap.val()||{}; const arr = Object.values(v); messagesEl.innerHTML=''; arr.forEach(m=>renderMsg(m)); messagesEl.scrollTop = messagesEl.scrollHeight; }); }
+
+      btnSend.onclick = async ()=>{ const text = msgInput.value.trim(); if(!text && !fileInput.files.length) return; if(!activeChatUid && !activeGroupId){ showNotice('Выберите пользователя или группу'); return; } const payload = { from: currentUser.uid, author: currentUser.displayName, email: currentUser.email, ts: Date.now(), text: text||'' };
+        if(fileInput.files.length){ const data = await fileToDataURL(fileInput.files[0]); payload.file = { name:fileInput.files[0].name, type:fileInput.files[0].type, data }; }
+        if(activeChatUid){ const chatId = makeChatId(currentUser.uid, activeChatUid); await push(ref(db,'chats/'+chatId+'/messages'), payload); }
+        else if(activeGroupId){ await push(ref(db,'groups/'+activeGroupId+'/messages'), payload); }
+        msgInput.value=''; fileInput.value=''; };
+
+      function renderMsg(m){ const row = document.createElement('div'); const mine = m.from===currentUser.uid; row.className = 'msg-row '+(mine?'me':''); const avatarImg = document.createElement('img'); avatarImg.className='avatar'; avatarImg.style.display='none'; const bubble = document.createElement('div'); bubble.className='bubble'; if(m.file){ if(m.file.type && m.file.type.startsWith('image/')){ const img=document.createElement('img'); img.src = m.file.data; img.className='file-thumb'; bubble.appendChild(img); } else { const a=document.createElement('a'); a.href=m.file.data; a.download=m.file.name; a.textContent = 'Скачать: '+m.file.name; a.className='small'; bubble.appendChild(a); } }
+        if(m.text) bubble.insertBefore(document.createTextNode(m.text), bubble.firstChild);
+        const meta = document.createElement('div'); meta.className='meta'; meta.textContent = (m.author?m.author+' • ':'') + timeStr(m.ts);
+        bubble.appendChild(meta);
+        row.appendChild(avatarImg);
+        row.appendChild(bubble);
+        messagesEl.appendChild(row);
+        // try to load author's avatar
+        if(m.from){ get(ref(db,'users/'+m.from)).then(snap=>{ const u=snap.val(); if(u && u.avatar){ avatarImg.src = u.avatar; avatarImg.style.display='block'; } else avatarImg.style.display='none'; }); }
+      }
+
+      btnRefresh.onclick = ()=>{ if(activeGroupId) openGroup(activeGroupId); else if(activeChatUid) openChatFirebase(activeChatUid, chatTitle.textContent); else loadUsersFirebase(); };
+
+    }
+
+    // ---------------- Local fallback (guest/demo) ----------------
+    function startLocal(){
+      const data = loadLocal();
+      btnRegister.onclick = async ()=>{ const email = emailEl.value.trim(); const pass = passEl.value; const displayName=displayNameEl.value.trim()||email.split('@')[0]; if(!email||!pass){ showNotice('Введите email и пароль'); return; } if(Object.values(data.users).some(u=>u.email===email)){ showNotice('Email занят (локально)'); return; } const id=uid(); let avatar=null; if(avatarInput.files && avatarInput.files[0]) avatar = await fileToDataURL(avatarInput.files[0]); const user={uid:id,email,displayName,avatar}; data.users[id]=user; saveLocal(data); currentUser=user; onLoginLocal(); showNotice('Зарегистрированы локально'); };
+      btnLogin.onclick = ()=>{ const email=emailEl.value.trim(); const u=Object.values(data.users).find(x=>x.email===email); if(!u){ showNotice('Пользователь не найден (локально)'); return; } currentUser=u; onLoginLocal(); showNotice('Вход локально'); };
+      btnGuest.onclick = ()=>{ const id=uid(); const user={uid:id,email:'guest@local',displayName:'Гость_'+id.slice(-4),avatar:null}; currentUser=user; onLoginLocal(); showNotice('Вошли как гость'); };
+      btnReset.onclick = ()=>{ const email=prompt('Введите email для восстановления (локально):'); if(email) alert('Локально: сообщение для восстановления (симуляция) отправлено'); };
+      btnGoogle.onclick = ()=>{ alert('Google Sign-In недоступен в локальном режиме'); };
+      btnLogout.onclick = ()=>{ currentUser=null; activeChatUid=null; activeGroupId=null; authPanel.style.display=''; userPanel.style.display='none'; usersList.innerHTML=''; messagesEl.innerHTML=''; };
+
+      function onLoginLocal(){ authPanel.style.display='none'; userPanel.style.display='block'; meName.textContent=currentUser.displayName; meEmail.textContent=currentUser.email; if(currentUser.avatar){ meAvatar.src=currentUser.avatar; meAvatar.style.display='inline-block'; } else meAvatar.style.display='none'; renderUsersLocal(); renderGroupsLocal(); }
+
+      function renderUsersLocal(filterArr){ usersList.innerHTML=''; const arr = filterArr || Object.values(data.users).sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||'')); arr.forEach(u=>{ if(u.uid===currentUser.uid) return; const el=document.createElement('div'); el.style.padding='8px'; el.style.borderBottom='1px solid #f0f0f0'; el.style.display='flex'; el.style.gap='8px'; el.style.alignItems='center'; el.innerHTML = `${u.avatar?'<img src="'+u.avatar+'" class="avatar"/>':''}<div style="flex:1"><strong>${escapeHtml(u.displayName)}</strong><div class="small">${escapeHtml(u.email)}</div></div>`; el.onclick=()=>{ modeSelect.value='pm'; groupsSelect.style.display='none'; openChatLocal(u.uid,u.displayName); }; usersList.appendChild(el); }); }
+
+      function renderGroupsLocal(){ const gs = Object.values(data.groups||{}).filter(g=> (g.members||[]).includes(currentUser.email)); groupsSelect.innerHTML=''; gs.forEach(g=>{ const opt=document.createElement('option'); opt.value=g.id; opt.textContent=g.name; groupsSelect.appendChild(opt); }); if(gs.length) groupsSelect.style.display='inline-block'; }
+
+      btnSearch.onclick = ()=>{ const q=(searchInput.value||'').trim().toLowerCase(); if(!q){ renderUsersLocal(); return; } const arr = Object.values(data.users).filter(u=> (u.displayName||u.email||'').toLowerCase().includes(q)); renderUsersLocal(arr); };
+
+      btnCreateGroup.onclick = ()=>{ const name=prompt('Название группы'); if(!name) return; const id=uid(); const desc=prompt('Описание')||''; data.groups[id]={ id, name, desc, owner:currentUser.uid, members:[currentUser.email] }; saveLocal(data); renderGroupsLocal(); showNotice('Группа создана (локально)'); };
+
+      btnMyGroups.onclick = ()=>{ renderGroupsLocal(); showNotice('Ваши группы (локально)'); };
+
+      function makeChatId(a,b){ return [a,b].sort().join('_'); }
+      function openChatLocal(uid,name){ activeGroupId=null; activeChatUid=uid; window.__klass_setActiveChatUid(uid); messagesEl.innerHTML=''; const chatId=makeChatId(currentUser.uid,uid); const msgs = data.chats[chatId]||[]; msgs.forEach(m=>renderMsgLocal(m)); chatTitle.textContent=name; chatSub.textContent='Личный чат (локально)'; }
+
+      function openGroupLocal(id){ activeChatUid=null; activeGroupId=id; window.__klass_setActiveChatUid(null); messagesEl.innerHTML=''; const g = data.groups[id]; const msgs = g.messages||[]; msgs.forEach(m=>renderMsgLocal(m)); chatTitle.textContent=g.name; chatSub.textContent=g.desc||('Участников: '+(g.members||[]).length); }
+
+      btnSend.onclick = async ()=>{ const text = msgInput.value.trim(); if(!text && !fileInput.files.length) return; if(!activeChatUid && !activeGroupId){ showNotice('Выберите пользователя или группу'); return; } const m = { id:Date.now()+Math.random(), from:currentUser.uid, author:currentUser.displayName, email:currentUser.email, ts:Date.now(), text:text||'' };
+        if(fileInput.files.length){ const d = await fileToDataURL(fileInput.files[0]); m.file={ name:fileInput.files[0].name, type:fileInput.files[0].type, data:d }; }
+        if(activeChatUid){ const chatId=makeChatId(currentUser.uid,activeChatUid); data.chats[chatId]=data.chats[chatId]||[]; data.chats[chatId].push(m); saveLocal(data); renderMsgLocal(m); }
+        else { const g = data.groups[activeGroupId]; g.messages = g.messages||[]; g.messages.push(m); saveLocal(data); renderMsgLocal(m); }
+        msgInput.value=''; fileInput.value=''; };
+
+      function renderMsgLocal(m){ const row=document.createElement('div'); row.className=(m.from===currentUser.uid?'msg-row me':'msg-row'); const avatarImg=document.createElement('img'); avatarImg.className='avatar'; avatarImg.style.display='none'; const bubble=document.createElement('div'); bubble.className='bubble'; if(m.file){ if(m.file.type && m.file.type.startsWith('image/')){ const img=document.createElement('img'); img.src=m.file.data; img.className='file-thumb'; bubble.appendChild(img); } else { const a=document.createElement('a'); a.href=m.file.data; a.download=m.file.name; a.textContent='Скачать: '+m.file.name; a.className='small'; bubble.appendChild(a); } }
+        if(m.text) bubble.insertBefore(document.createTextNode(m.text), bubble.firstChild);
+        const meta=document.createElement('div'); meta.className='meta'; meta.textContent=(m.author?m.author+' • ':'')+timeStr(m.ts); bubble.appendChild(meta);
+        row.appendChild(avatarImg); row.appendChild(bubble); messagesEl.appendChild(row); const u = Object.values(loadLocal().users||{}).find(x=>x.uid===m.from); if(u && u.avatar){ avatarImg.src=u.avatar; avatarImg.style.display='block'; } }
+
+      renderUsersLocal(); renderGroupsLocal();
+    }
+
+    // helper: convert file to data URL
+    function fileToDataURL(file){ return new Promise((res,rej)=>{ const reader=new FileReader(); reader.onload=()=>res(reader.result); reader.onerror=rej; reader.readAsDataURL(file); }); }
+
+    // start
+    init();
+  </script>
+
+  <audio id="remoteAudio" autoplay></audio>
+
+  <!-- Incoming call UI -->
+  <div class="incoming-call" id="incomingCall">
+    <div class="txt" id="incomingText">Входящий звонок</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="acceptCall" style="background:#10b981">Принять</button>
+      <button id="rejectCall" style="background:#ef4444">Отклонить</button>
+    </div>
+  </div>
+
+<script>
+// --- Audio-only WebRTC (uses Realtime Database for signaling) ---
+// This script was updated to use handles exposed by the module script:
+// window.__klass_db and window.__klass_auth
+(async function(){
+  // helper to get db/auth that module exposed
+  function getHandles(){
+    return {
+      db: window.__klass_db || (window.firebase && window.firebase.database && window.firebase.database()),
+      auth: window.__klass_auth || (window.firebase && window.firebase.auth && window.firebase.auth())
+    };
+  }
+
+  const { db, auth } = getHandles();
+  const callBtn = document.getElementById('callBtn');
+  const endCallBtn = document.getElementById('endCallBtn');
+  const remoteAudio = document.getElementById('remoteAudio');
+  const incomingBox = document.getElementById('incomingCall');
+  const incomingText = document.getElementById('incomingText');
+
+  let pc = null;
+  let localStream = null;
+  let callRef = null;
+  let currentIncoming = null;
+
+  const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302'] }] };
+
+  function cleanupCall(){
+    if(pc){ try{ pc.close(); }catch(e){} pc = null; }
+    if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
+    if(callRef){ try{ 
+      // try to remove call record if created locally
+      if(typeof callRef.remove === 'function') callRef.remove(); 
+    }catch(e){} callRef = null; }
+    endCallBtn.style.display = 'none';
+    callBtn.style.display = 'inline-block';
+    remoteAudio.srcObject = null;
+  }
+
+  async function startCall(targetUid){
+    // require auth and db for signalling
+    const handles = getHandles();
+    if(!handles.auth || !handles.db){ alert('Для звонков требуется Firebase Realtime Database и авторизация. Проверьте конфигурацию.'); return; }
+    if(!handles.auth.currentUser){ alert('Войдите, чтобы совершать звонки'); return; }
+
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch(e){ alert('Доступ к микрофону не разрешён'); return; }
+
+    pc = new RTCPeerConnection(servers);
+    pc.ontrack = e => { remoteAudio.srcObject = e.streams[0]; };
+    pc.onicecandidate = event => {
+      if(event.candidate && callRef){
+        try{ callRef.child('offerCandidates').push(event.candidate.toJSON()); }catch(e){ console.warn('Failed push candidate', e); }
+      }
+    };
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // create offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // create call entry
+    callRef = ref(handles.db, 'webrtc_calls').push();
+    await callRef.set({ from: handles.auth.currentUser.uid, to: targetUid, status: 'offer', offer: { type: offer.type, sdp: offer.sdp } });
+
+    // listen for answer
+    callRef.child('answer').on('value', snap=>{
+      const a = snap.val();
+      if(a && pc && !pc.currentRemoteDescription){
+        pc.setRemoteDescription(new RTCSessionDescription(a)).catch(e=>console.warn(e));
+      }
+    });
+
+    // listen for answer candidates
+    callRef.child('answerCandidates').on('child_added', snap=>{
+      const c = snap.val();
+      try{ pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){}
+    });
+
+    // listen for callee status change (rejected)
+    callRef.child('status').on('value', snap=>{
+      const s = snap.val();
+      if(s === 'rejected'){ alert('Звонок отклонён'); cleanupCall(); }
+    });
+
+    endCallBtn.style.display = 'inline-block';
+    callBtn.style.display = 'none';
+    showNotice('Вызов отправлен');
+  }
+
+  async function answerCall(callId, callData){
+    const handles = getHandles();
+    if(!handles.auth || !handles.db) return;
+    if(!handles.auth.currentUser){ return; }
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch(e){ alert('Доступ к микрофону не разрешён'); return; }
+
+    callRef = ref(handles.db, 'webrtc_calls/' + callId);
+    pc = new RTCPeerConnection(servers);
+    pc.ontrack = e => { remoteAudio.srcObject = e.streams[0]; };
+    pc.onicecandidate = event => {
+      if(event.candidate && callRef){ callRef.child('answerCandidates').push(event.candidate.toJSON()); }
+    };
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // set remote offer
+    await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await callRef.child('answer').set({ type: answer.type, sdp: answer.sdp });
+
+    // listen for offer candidates
+    callRef.child('offerCandidates').on('child_added', snap=>{
+      const c = snap.val();
+      try{ pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){} 
+    });
+
+    endCallBtn.style.display = 'inline-block';
+    callBtn.style.display = 'none';
+    showNotice('Звонок принят');
+  }
+
+  // Listen for incoming calls if db/auth available
+  function watchIncoming(){
+    const handles = getHandles();
+    if(!handles.db || !handles.auth) return;
+    ref(handles.db, 'webrtc_calls').on('child_added', snap=>{
+      const id = snap.key;
+      const data = snap.val();
+      // if this call is for current user and not handled yet -> show
+      if(data && data.to === handles.auth.currentUser.uid && data.status === 'offer' && !data.handled){
+        currentIncoming = { id, data };
+        incomingText.textContent = 'Входящий звонок от ' + (data.from || 'неизвестный');
+        incomingBox.style.display = 'block';
+      }
+    });
+  }
+
+  // wire accept/reject
+  document.getElementById('acceptCall').onclick = async ()=>{
+    if(!currentIncoming) return;
+    incomingBox.style.display = 'none';
+    const handles = getHandles();
+    try{ await ref(handles.db, 'webrtc_calls/'+currentIncoming.id+'/handled').set(true); }catch(e){ console.warn(e); }
+    await answerCall(currentIncoming.id, currentIncoming.data);
+    currentIncoming = null;
+  };
+  document.getElementById('rejectCall').onclick = async ()=>{
+    if(!currentIncoming) return;
+    incomingBox.style.display = 'none';
+    const handles = getHandles();
+    try{ await ref(handles.db, 'webrtc_calls/'+currentIncoming.id+'/status').set('rejected'); }catch(e){ console.warn(e); }
+    currentIncoming = null;
+  };
+
+  // call button behaviour: prefer active chat user if selected; otherwise prompt for email/uid and resolve
+  callBtn.onclick = async ()=>{
+    const handles = getHandles();
+    let target = null;
+    // try to get active chat uid exposed by module
+    if(window.__klass_getActiveChatUid && window.__klass_getActiveChatUid()){
+      target = window.__klass_getActiveChatUid();
+    } else {
+      const entered = prompt('Введите email или UID пользователя для звонка:');
+      if(!entered) return;
+      // try to resolve via users list in db
+      if(handles.db){
+        try{
+          const usersSnap = await ref(handles.db, 'users').once('value');
+          const users = usersSnap.val() || {};
+          let found = null;
+          Object.values(users).forEach(u=>{ if(u.email===entered || u.uid===entered) found = u; });
+          if(found) target = found.uid;
+        }catch(e){ console.warn('Failed to resolve user', e); }
+      }
+      if(!target) {
+        if(confirm('Пользователь не найден в базе. Позвонить по введённому значению как UID?')) target = entered;
+        else return;
+      }
+    }
+    await startCall(target);
+  };
+
+  endCallBtn.onclick = cleanupCall;
+
+  // kick off watcher if possible (will silently do nothing if no Firebase)
+  try{ watchIncoming(); }catch(e){ console.warn(e); }
+
+})();
+</script>
+
+  <!-- Logs UI -->
+  <button id="showLogsBtn" style="position:fixed;right:12px;bottom:12px;z-index:2000;background:#111;color:#fff;border-radius:8px;padding:8px 10px;border:none;box-shadow:0 6px 18px rgba(0,0,0,.12)">🪵 Показать логи</button>
+  <div id="logConsole" style="position:fixed;right:12px;bottom:56px;left:12px;max-height:40%;background:#000;color:#0f0;font-family:monospace;font-size:12px;padding:8px;overflow:auto;border-radius:8px;display:none;z-index:1999"></div>
+  <script>
+  (function(){
+    const btn = document.getElementById('showLogsBtn');
+    const pane = document.getElementById('logConsole');
+    if(!btn || !pane) return;
+    let visible = false;
+    btn.addEventListener('click', ()=>{ visible = !visible; pane.style.display = visible ? 'block' : 'none'; btn.textContent = visible ? '🪵 Скрыть логи' : '🪵 Показать логи'; });
+    // capture console
+    const origLog = console.log.bind(console);
+    const origErr = console.error.bind(console);
+    const origWarn = console.warn.bind(console);
+    function appendLine(msg, cls){
+      const div = document.createElement('div');
+      if(cls) div.style.color = cls;
+      div.textContent = (new Date()).toLocaleTimeString() + ' — ' + msg;
+      pane.appendChild(div);
+      pane.scrollTop = pane.scrollHeight;
+    }
+    console.log = function(...args){ try{ origLog(...args); appendLine(args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ')); }catch(e){ origLog('log-err',e); } };
+    console.error = function(...args){ try{ origErr(...args); appendLine(args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' '), 'red'); }catch(e){ origErr('error-err',e); } };
+    console.warn = function(...args){ try{ origWarn(...args); appendLine(args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' '), 'orange'); }catch(e){ origWarn('warn-err',e); } };
+    // also capture uncaught errors
+    window.addEventListener('error', function(ev){ appendLine('Uncaught error: '+ev.message+' ('+ev.filename+':'+ev.lineno+')', 'red'); });
+    window.addEventListener('unhandledrejection', function(ev){ appendLine('Unhandled rejection: '+(ev.reason && ev.reason.message?ev.reason.message:JSON.stringify(ev.reason)), 'red'); });
+    // initial message
+    console.log('[log] Console capture started');
+  })();
+  </script>
+
+</body>
+</html>
