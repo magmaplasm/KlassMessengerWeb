@@ -1,0 +1,2859 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stas Messenger 💬</title>
+  <style>
+    :root {
+      --primary: #0084FF;
+      --primary-dark: #0066CC;
+      --accent: #34B7F1;
+      --light: #E5F2FF;
+      --light-gray: #F0F8FF;
+      --dark: #2C3E50;
+      --white: #FFFFFF;
+      --success: #4CAF50;
+      --danger: #F44336;
+      --help-color: #FF9800;
+      --warning: #FF9800;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: var(--light);
+      color: var(--dark);
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* Header */
+    .app-header {
+      background-color: var(--primary-dark);
+      color: var(--white);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .app-title {
+      font-size: 20px;
+      font-weight: 500;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 16px;
+    }
+    
+    .header-actions button {
+      background: none;
+      border: none;
+      color: var(--white);
+      font-size: 18px;
+      cursor: pointer;
+    }
+    
+    /* Main layout */
+    .app-container {
+      display: flex;
+      height: calc(100vh - 56px);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 30%;
+      background-color: var(--white);
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .sidebar-header {
+      padding: 12px 16px;
+      background-color: var(--white);
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .search-container {
+      position: relative;
+      margin-top: 8px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 10px 16px 10px 40px;
+      border: none;
+      border-radius: 20px;
+      background-color: var(--light-gray);
+      font-size: 14px;
+      outline: none;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #757575;
+    }
+    
+    .chats-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    
+    .chat-item {
+      display: flex;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      position: relative;
+    }
+    
+    .chat-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .chat-item.active {
+      background-color: #e9e9e9;
+    }
+    
+    .chat-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 12px;
+      position: relative;
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .help-avatar {
+      background-color: var(--help-color);
+    }
+    
+    .user-avatar {
+      background-color: var(--primary);
+    }
+    
+    .help-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      background: var(--help-color);
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+    
+    .chat-info {
+      flex: 1;
+      overflow: hidden;
+      min-width: 0;
+    }
+    
+    .chat-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .help-indicator {
+      color: var(--help-color);
+      font-size: 12px;
+    }
+    
+    .chat-preview {
+      font-size: 13px;
+      color: #757575;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .chat-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    
+    .chat-time {
+      font-size: 12px;
+      color: #757575;
+      margin-bottom: 4px;
+    }
+    
+    .unread-badge {
+      background-color: var(--primary);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    
+    /* Chat area */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--light);
+      position: relative;
+    }
+    
+    .chat-header {
+      background-color: var(--white);
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .chat-header-main {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .chat-header-info {
+      flex: 1;
+      margin-left: 12px;
+      min-width: 0;
+    }
+    
+    .chat-header-name {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .chat-header-status {
+      font-size: 13px;
+      color: #757575;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .call-buttons {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    
+    .call-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    
+    .call-btn:hover {
+      background-color: var(--light-gray);
+    }
+    
+    .voice-call {
+      color: var(--success);
+    }
+    
+    .video-call {
+      color: var(--primary);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .message {
+      max-width: 70%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    
+    .message.sent {
+      align-self: flex-end;
+      background-color: #D1ECFF;
+      border-top-right-radius: 0;
+    }
+    
+    .message.received {
+      align-self: flex-start;
+      background-color: var(--white);
+      border-top-left-radius: 0;
+    }
+    
+    .message.help {
+      align-self: flex-start;
+      background-color: #FFF3E0;
+      border-top-left-radius: 0;
+      border-left: 3px solid var(--help-color);
+    }
+    
+    .message-time {
+      font-size: 11px;
+      color: #757575;
+      text-align: right;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    
+    .message-status {
+      font-size: 10px;
+    }
+    
+    .sent-status {
+      color: #757575;
+    }
+    
+    .delivered-status {
+      color: var(--primary);
+    }
+    
+    .read-status {
+      color: var(--primary-dark);
+    }
+    
+    .message-input-container {
+      display: flex;
+      padding: 12px 16px;
+      background-color: var(--white);
+      border-top: 1px solid #e0e0e0;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    
+    .message-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 24px;
+      background-color: var(--light-gray);
+      outline: none;
+      font-size: 15px;
+      min-height: 44px;
+      max-height: 120px;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+    
+    .send-button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* File upload button */
+    .file-button {
+      background-color: var(--light-gray);
+      color: var(--primary);
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+
+    .file-button:hover {
+      background-color: #e0e0e0;
+    }
+    
+    /* Auth screen */
+    .auth-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    
+    .auth-logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    
+    .auth-title {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .auth-form {
+      width: 100%;
+      max-width: 400px;
+      background-color: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .auth-input {
+      width: 100%;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .auth-button {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: background-color 0.2s;
+    }
+    
+    .auth-button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .auth-button.secondary {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    
+    .auth-button.secondary:hover {
+      background-color: var(--light);
+    }
+    
+    .auth-switch {
+      text-align: center;
+      margin-top: 16px;
+      color: #757575;
+    }
+    
+    .auth-switch a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+      }
+      
+      .chat-area {
+        display: none;
+      }
+      
+      .chat-area.active {
+        display: flex;
+      }
+    }
+    
+    /* Loading */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Online status indicator */
+    .online-indicator {
+      width: 10px;
+      height: 10px;
+      background-color: #4CAF50;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    /* Search results */
+    .search-results {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-height: 300px;
+      overflow-y: auto;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      margin-top: 4px;
+    }
+    
+    .search-result-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    
+    .search-result-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    
+    .search-result-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 12px;
+    }
+    
+    .search-result-info {
+      flex: 1;
+    }
+    
+    .search-result-name {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    
+    .search-result-email {
+      font-size: 12px;
+      color: #757575;
+    }
+    
+    .no-results {
+      padding: 16px;
+      text-align: center;
+      color: #757575;
+      font-style: italic;
+    }
+    
+    /* Help buttons */
+    .help-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    
+    .help-btn {
+      background-color: var(--help-color);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      padding: 8px 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .help-btn:hover {
+      background-color: #F57C00;
+    }
+    
+    /* Help sections */
+    .help-section {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+      border-left: 4px solid var(--help-color);
+    }
+    
+    .help-section-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--help-color);
+    }
+    
+    .help-section-content {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .help-feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .help-feature-list li {
+      padding: 4px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .help-feature-list li:before {
+      content: "✓";
+      color: var(--success);
+      font-weight: bold;
+    }
+    
+    /* Reactions */
+    .reactions-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    
+    .reaction {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 2px 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .reaction:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.05);
+    }
+    
+    .reaction.my-reaction {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .reaction-emoji {
+      font-size: 14px;
+    }
+    
+    .reaction-count {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    .add-reaction-btn {
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      opacity: 0.6;
+      transition: all 0.2s;
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .add-reaction-btn:hover {
+      opacity: 1;
+      background: var(--light-gray);
+    }
+    
+    .reactions-panel {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: white;
+      border-radius: 20px;
+      padding: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      display: none;
+      gap: 4px;
+      z-index: 1000;
+    }
+    
+    .reactions-panel.show {
+      display: flex;
+    }
+    
+    .reaction-option {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    
+    .reaction-option:hover {
+      transform: scale(1.3);
+    }
+    
+    /* Profile modal */
+    .profile-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    
+    .profile-content {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 36px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .profile-avatar:hover::after {
+      content: '📷';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .avatar-upload {
+      display: none;
+    }
+    
+    .profile-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .profile-email {
+      color: #666;
+      margin-bottom: 20px;
+    }
+    
+    .profile-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    
+    .profile-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .profile-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .profile-btn.secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    /* Новые стили для голосовых сообщений */
+    
+    /* Уведомления */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 3000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateX(0);
+    }
+    
+    .notification.success {
+      background: var(--success);
+    }
+    
+    .notification.error {
+      background: var(--danger);
+    }
+    
+    .notification.warning {
+      background: var(--warning);
+    }
+    
+    /* Голосовые сообщения */
+    .voice-message {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--light-gray);
+      border-radius: 20px;
+      cursor: pointer;
+      min-width: 200px;
+    }
+    
+    .voice-play-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+    
+    .voice-play-btn:hover {
+      background: var(--primary-dark);
+    }
+    
+    .voice-play-btn.playing {
+      background: var(--success);
+    }
+    
+    .voice-waveform {
+      flex: 1;
+      height: 24px;
+      background: #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .voice-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--primary);
+      border-radius: 12px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    
+    .voice-duration {
+      font-size: 12px;
+      color: #757575;
+      min-width: 40px;
+      text-align: right;
+    }
+    
+    /* Voice recorder */
+    .voice-recorder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+    }
+    
+    .voice-visualizer {
+      width: 100%;
+      height: 60px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 0 10px;
+    }
+    
+    .voice-bar {
+      width: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: height 0.1s ease;
+    }
+    
+    .voice-recorder-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .voice-record-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.2s;
+    }
+    
+    .voice-record-btn.recording {
+      background: var(--success);
+      transform: scale(1.1);
+    }
+    
+    .voice-record-btn:hover {
+      transform: scale(1.05);
+    }
+    
+    .voice-cancel-btn {
+      background: #757575;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    
+    /* Delete message button */
+    .delete-message-btn {
+      background: none;
+      border: none;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: all 0.2s;
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--danger);
+      color: white;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .message:hover .delete-message-btn {
+      opacity: 1;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--white);
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .tab:hover:not(.active) {
+      background: var(--light-gray);
+    }
+    
+    /* Account settings */
+    .account-form {
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    /* Анимации */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse-animation {
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .message-animation {
+      animation: slideIn 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-logo">💬</div>
+    <h1 class="auth-title">Stas Messenger</h1>
+    <div class="auth-form">
+      <input type="email" id="authEmail" class="auth-input" placeholder="Email">
+      <input type="password" id="authPassword" class="auth-input" placeholder="Пароль">
+      <input type="text" id="authDisplayName" class="auth-input" placeholder="Имя (отображается в чатах)" style="display: none;">
+      <button id="authButton" class="auth-button">Войти</button>
+      <button id="switchAuthMode" class="auth-button secondary">Создать аккаунт</button>
+      <div class="auth-switch">
+        <a href="#" id="forgotPassword">Забыли пароль?</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" style="display: none;">
+    <header class="app-header">
+      <div class="app-title">Stas Messenger</div>
+      <div class="header-actions">
+        <button id="searchButton">🔍</button>
+        <button id="profileButton">👤</button>
+        <button id="menuButton">⋮</button>
+      </div>
+    </header>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="chats">Чаты</button>
+      <button class="tab" data-tab="account">Аккаунт</button>
+    </div>
+    
+    <div class="app-container">
+      <!-- Sidebar with chats -->
+      <div class="sidebar" id="chatsTab">
+        <div class="sidebar-header">
+          <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Поиск или новый чат" id="searchInput">
+            <div class="search-results" id="searchResults" style="display: none;"></div>
+          </div>
+        </div>
+        
+        <div class="chats-list" id="chatsList">
+          <!-- Help Assistant will be added here -->
+        </div>
+      </div>
+      
+      <!-- Account settings -->
+      <div class="sidebar" id="accountTab" style="display: none;">
+        <div class="account-form">
+          <div class="form-group">
+            <label class="form-label">Имя пользователя</label>
+            <input type="text" class="form-input" id="accountDisplayName" placeholder="Введите ваше имя">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="accountEmail" placeholder="Введите ваш email">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Новый пароль</label>
+            <input type="password" class="form-input" id="accountNewPassword" placeholder="Введите новый пароль">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Подтвердите пароль</label>
+            <input type="password" class="form-input" id="accountConfirmPassword" placeholder="Подтвердите новый пароль">
+          </div>
+          <button class="auth-button" id="saveAccountSettings">Сохранить изменения</button>
+          <button class="auth-button secondary" id="logoutAllDevices">Выйти со всех устройств</button>
+        </div>
+      </div>
+      
+      <!-- Chat area -->
+      <div class="chat-area">
+        <div class="chat-header">
+          <div class="chat-header-main">
+            <div class="chat-avatar help-avatar" id="chatAvatar" style="display: none;">?</div>
+            <div class="chat-header-info">
+              <div class="chat-header-name" id="chatName">Выберите чат</div>
+              <div class="chat-header-status" id="chatStatus">
+                <span class="online-indicator"></span>Начните общение
+              </div>
+            </div>
+          </div>
+          <div class="call-buttons" id="callButtons" style="display: none;">
+            <button class="call-btn voice-call" title="Голосовой звонок">📞</button>
+            <button class="call-btn video-call" title="Видеозвонок">📹</button>
+          </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+          <div class="loading" id="chatLoading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+        
+        <div class="message-input-container">
+          <button class="file-button" id="fileButton" title="Отправить файл">
+            📎
+          </button>
+          <button class="file-button" id="voiceButton" title="Голосовое сообщение">
+            🎤
+          </button>
+          <textarea class="message-input" placeholder="Введите сообщение..." id="messageInput" rows="1"></textarea>
+          <button class="send-button" id="sendButton">
+            ➤
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profileModal" class="profile-modal">
+    <div class="profile-content">
+      <div class="profile-avatar" id="profileAvatarElement">
+        <input type="file" id="avatarUpload" class="avatar-upload" accept="image/*">
+      </div>
+      <div class="profile-name" id="profileNameElement"></div>
+      <div class="profile-email" id="profileEmailElement"></div>
+      <div class="profile-actions">
+        <button class="profile-btn secondary" id="closeProfile">Закрыть</button>
+        <button class="profile-btn primary" id="saveAvatar">Сохранить аватар</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Recorder Modal -->
+  <div id="voiceModal" class="profile-modal" style="display: none;">
+    <div class="profile-content">
+      <div class="voice-recorder">
+        <div id="voiceVisualizer" class="voice-visualizer">
+          <div class="voice-bar" style="height: 10px;"></div>
+          <div class="voice-bar" style="height: 20px;"></div>
+          <div class="voice-bar" style="height: 15px;"></div>
+          <div class="voice-bar" style="height: 25px;"></div>
+          <div class="voice-bar" style="height: 18px;"></div>
+          <div class="voice-bar" style="height: 12px;"></div>
+          <div class="voice-bar" style="height: 22px;"></div>
+          <div class="voice-bar" style="height: 16px;"></div>
+        </div>
+        <div id="voiceTimer" style="font-size: 24px; font-weight: bold;">00:00</div>
+        <div id="voiceStatus" style="color: #757575;">Нажмите кнопку для начала записи</div>
+        <div class="voice-recorder-controls">
+          <button class="voice-cancel-btn" id="cancelVoice">Отмена</button>
+          <button class="voice-record-btn" id="startVoiceRecord">
+            🎤
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTwQJ4z3vuj_3BFSfUCryooN3IYH-MKsE",
+      authDomain: "best-messenger-9db3f.firebaseapp.com",
+      databaseURL: "https://best-messenger-9db3f-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "best-messenger-9db3f",
+      storageBucket: "best-messenger-9db3f.firebasestorage.app",
+      messagingSenderId: "626528479187",
+      appId: "1:626528479187:web:7e7b094416ce8d98e57126"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // DOM elements
+    const authScreen = document.getElementById('authScreen');
+    const appContainer = document.getElementById('app');
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const authDisplayName = document.getElementById('authDisplayName');
+    const authButton = document.getElementById('authButton');
+    const switchAuthMode = document.getElementById('switchAuthMode');
+    const forgotPassword = document.getElementById('forgotPassword');
+    
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const chatsList = document.getElementById('chatsList');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatLoading = document.getElementById('chatLoading');
+    const chatName = document.getElementById('chatName');
+    const chatStatus = document.getElementById('chatStatus');
+    const chatAvatar = document.getElementById('chatAvatar');
+    const callButtons = document.getElementById('callButtons');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const fileButton = document.getElementById('fileButton');
+    const voiceButton = document.getElementById('voiceButton');
+    
+    // Tabs
+    const tabs = document.querySelectorAll('.tab');
+    const chatsTab = document.getElementById('chatsTab');
+    const accountTab = document.getElementById('accountTab');
+    
+    // Account settings
+    const accountDisplayName = document.getElementById('accountDisplayName');
+    const accountEmail = document.getElementById('accountEmail');
+    const accountNewPassword = document.getElementById('accountNewPassword');
+    const accountConfirmPassword = document.getElementById('accountConfirmPassword');
+    const saveAccountSettings = document.getElementById('saveAccountSettings');
+    const logoutAllDevices = document.getElementById('logoutAllDevices');
+    
+    // Profile elements
+    const profileButton = document.getElementById('profileButton');
+    const profileModal = document.getElementById('profileModal');
+    const profileAvatarElement = document.getElementById('profileAvatarElement');
+    const profileNameElement = document.getElementById('profileNameElement');
+    const profileEmailElement = document.getElementById('profileEmailElement');
+    const avatarUpload = document.getElementById('avatarUpload');
+    const closeProfile = document.getElementById('closeProfile');
+    const saveAvatar = document.getElementById('saveAvatar');
+
+    // Voice recording elements
+    const voiceModal = document.getElementById('voiceModal');
+    const voiceVisualizer = document.getElementById('voiceVisualizer');
+    const voiceTimer = document.getElementById('voiceTimer');
+    const voiceStatus = document.getElementById('voiceStatus');
+    const startVoiceRecord = document.getElementById('startVoiceRecord');
+    const cancelVoice = document.getElementById('cancelVoice');
+
+    // App state
+    let currentUser = null;
+    let currentChat = null;
+    let isSignUp = false;
+    let allUsers = [];
+    let selectedAvatarFile = null;
+    
+    // Voice recording state
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let recordStartTime = null;
+    let timerInterval = null;
+    let audioContext = null;
+    let analyser = null;
+    let animationFrame = null;
+    
+    // Help Assistant
+    const helpAssistant = {
+      uid: 'help_assistant',
+      displayName: 'Справочник',
+      email: 'help@stas-messenger.com',
+      isHelp: true
+    };
+
+    // Available reactions
+    const availableReactions = ['👍', '❤️', '😂', '😮', '😢', '👎'];
+
+    // Initialize app
+    function init() {
+      setupAuthListeners();
+      setupUIListeners();
+      setupMessageInput();
+      setupProfileListeners();
+      setupVoiceRecording();
+      setupTabs();
+      setupAccountListeners();
+    }
+
+    // Auth state listener
+    function setupAuthListeners() {
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          currentUser = user;
+          showApp();
+          loadUserChats();
+          loadAccountData();
+        } else {
+          currentUser = null;
+          showAuth();
+        }
+      });
+    }
+
+    // Setup tabs
+    function setupTabs() {
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabName = tab.dataset.tab;
+          
+          // Update active tab
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          // Show corresponding content
+          if (tabName === 'chats') {
+            chatsTab.style.display = 'flex';
+            accountTab.style.display = 'none';
+          } else if (tabName === 'account') {
+            chatsTab.style.display = 'none';
+            accountTab.style.display = 'block';
+          }
+        });
+      });
+    }
+
+    // Setup account listeners
+    function setupAccountListeners() {
+      saveAccountSettings.addEventListener('click', saveAccountSettingsHandler);
+      logoutAllDevices.addEventListener('click', logoutAllDevicesHandler);
+    }
+
+    // Load account data
+    function loadAccountData() {
+      if (!currentUser) return;
+      
+      accountDisplayName.value = currentUser.displayName || '';
+      accountEmail.value = currentUser.email || '';
+    }
+
+    // Save account settings
+    async function saveAccountSettingsHandler() {
+      if (!currentUser) return;
+      
+      const displayName = accountDisplayName.value.trim();
+      const email = accountEmail.value.trim();
+      const newPassword = accountNewPassword.value;
+      const confirmPassword = accountConfirmPassword.value;
+      
+      try {
+        // Update display name
+        if (displayName && displayName !== currentUser.displayName) {
+          await currentUser.updateProfile({
+            displayName: displayName
+          });
+          await db.ref('users/' + currentUser.uid + '/displayName').set(displayName);
+          showNotification('Имя успешно обновлено', 'success');
+        }
+        
+        // Update email
+        if (email && email !== currentUser.email) {
+          await currentUser.updateEmail(email);
+          await db.ref('users/' + currentUser.uid + '/email').set(email);
+          showNotification('Email успешно обновлен', 'success');
+        }
+        
+        // Update password
+        if (newPassword) {
+          if (newPassword !== confirmPassword) {
+            showNotification('Пароли не совпадают', 'error');
+            return;
+          }
+          if (newPassword.length < 6) {
+            showNotification('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+          }
+          await currentUser.updatePassword(newPassword);
+          showNotification('Пароль успешно обновлен', 'success');
+          accountNewPassword.value = '';
+          accountConfirmPassword.value = '';
+        }
+        
+      } catch (error) {
+        console.error('Error updating account:', error);
+        showNotification('Ошибка при обновлении данных: ' + error.message, 'error');
+      }
+    }
+
+    // Logout all devices
+    function logoutAllDevicesHandler() {
+      if (confirm('Вы уверены, что хотите выйти со всех устройств? Это действие нельзя отменить.')) {
+        auth.signOut();
+        showNotification('Вы вышли со всех устройств', 'warning');
+      }
+    }
+
+    // UI event listeners
+    function setupUIListeners() {
+      // Auth mode toggle
+      switchAuthMode.addEventListener('click', () => {
+        isSignUp = !isSignUp;
+        authDisplayName.style.display = isSignUp ? 'block' : 'none';
+        authButton.textContent = isSignUp ? 'Создать аккаунт' : 'Войти';
+        switchAuthMode.textContent = isSignUp ? 'Уже есть аккаунт?' : 'Создать аккаунт';
+      });
+
+      // Auth button - ИСПРАВЛЕННЫЙ КОД
+      authButton.addEventListener('click', () => {
+        const email = authEmail.value;
+        const password = authPassword.value;
+        const displayName = authDisplayName.value;
+
+        if (!email || !password) {
+          showNotification('Пожалуйста, введите email и пароль', 'error');
+          return;
+        }
+
+        if (isSignUp && !displayName) {
+          showNotification('Пожалуйста, введите имя', 'error');
+          return;
+        }
+
+        if (isSignUp) {
+          auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+              const user = userCredential.user;
+              return user.updateProfile({
+                displayName: displayName
+              }).then(() => {
+                // Create user record in database
+                return db.ref('users/' + user.uid).set({
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: displayName,
+                  createdAt: Date.now()
+                });
+              });
+            })
+            .then(() => {
+              showNotification('Аккаунт успешно создан!', 'success');
+              // Очищаем поля формы после успешной регистрации
+              authEmail.value = '';
+              authPassword.value = '';
+              authDisplayName.value = '';
+            })
+            .catch((error) => {
+              console.error('Ошибка регистрации:', error);
+              showNotification('Ошибка регистрации: ' + error.message, 'error');
+            });
+        } else {
+          auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+              showNotification('Вход выполнен успешно!', 'success');
+              // Очищаем поля формы после успешного входа
+              authEmail.value = '';
+              authPassword.value = '';
+            })
+            .catch((error) => {
+              console.error('Ошибка входа:', error);
+              showNotification('Ошибка входа: ' + error.message, 'error');
+            });
+        }
+      });
+
+      // Search functionality
+      searchInput.addEventListener('input', handleSearch);
+      searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim()) {
+          handleSearch();
+        }
+      });
+      
+      // Close search results when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = 'none';
+        }
+      });
+
+      // Send message
+      sendButton.addEventListener('click', sendMessage);
+
+      // File button
+      fileButton.addEventListener('click', handleFileUpload);
+
+      // Voice button
+      voiceButton.addEventListener('click', showVoiceRecorder);
+
+      // Logout from menu
+      document.getElementById('menuButton').addEventListener('click', () => {
+        if (confirm('Вы уверены, что хотите выйти?')) {
+          auth.signOut();
+          showNotification('Вы вышли из системы', 'warning');
+        }
+      });
+    }
+
+    // Setup voice recording
+    function setupVoiceRecording() {
+      startVoiceRecord.addEventListener('click', toggleRecording);
+      cancelVoice.addEventListener('click', cancelRecording);
+    }
+
+    // Show voice recorder
+    function showVoiceRecorder() {
+      if (!currentChat) {
+        showNotification('Сначала выберите чат', 'warning');
+        return;
+      }
+      voiceModal.style.display = 'flex';
+      resetVoiceRecorder();
+    }
+
+    // Reset voice recorder
+    function resetVoiceRecorder() {
+      stopRecording();
+      voiceTimer.textContent = '00:00';
+      voiceStatus.textContent = 'Нажмите кнопку для начала записи';
+      startVoiceRecord.textContent = '🎤';
+      startVoiceRecord.classList.remove('recording');
+      updateVisualizer([]);
+    }
+
+    // Toggle recording
+    async function toggleRecording() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    }
+
+    // Start recording
+    async function startRecording() {
+      try {
+        // Request microphone permission
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Setup audio context for visualization
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        
+        // Setup media recorder
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          sendVoiceMessage(audioBlob);
+        };
+        
+        // Start recording
+        mediaRecorder.start();
+        isRecording = true;
+        recordStartTime = Date.now();
+        
+        // Update UI
+        startVoiceRecord.textContent = '⏹️';
+        startVoiceRecord.classList.add('recording');
+        voiceStatus.textContent = 'Запись... Нажмите чтобы остановить';
+        
+        // Start timer
+        timerInterval = setInterval(updateTimer, 1000);
+        
+        // Start visualization
+        startVisualization();
+        
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        showNotification('Не удалось получить доступ к микрофону. Проверьте разрешения.', 'error');
+      }
+    }
+
+    // Stop recording
+    function stopRecording() {
+      if (!isRecording) return;
+      
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      
+      // Stop all tracks
+      if (mediaRecorder && mediaRecorder.stream) {
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      }
+      
+      // Clean up
+      isRecording = false;
+      clearInterval(timerInterval);
+      
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      
+      if (audioContext) {
+        audioContext.close();
+      }
+      
+      // Close modal after a short delay
+      setTimeout(() => {
+        voiceModal.style.display = 'none';
+      }, 1000);
+    }
+
+    // Cancel recording
+    function cancelRecording() {
+      stopRecording();
+      voiceModal.style.display = 'none';
+    }
+
+    // Update timer
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      voiceTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Start visualization
+    function startVisualization() {
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      function update() {
+        if (!isRecording) return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        updateVisualizer(dataArray);
+        animationFrame = requestAnimationFrame(update);
+      }
+      
+      update();
+    }
+
+    // Update visualizer
+    function updateVisualizer(dataArray) {
+      const bars = voiceVisualizer.querySelectorAll('.voice-bar');
+      const step = Math.floor(dataArray.length / bars.length);
+      
+      bars.forEach((bar, index) => {
+        const value = dataArray[index * step] || 0;
+        const height = Math.max(10, (value / 255) * 60);
+        bar.style.height = `${height}px`;
+        
+        // Add color variation based on intensity
+        const intensity = value / 255;
+        if (intensity > 0.7) {
+          bar.style.background = 'var(--danger)';
+        } else if (intensity > 0.4) {
+          bar.style.background = 'var(--warning)';
+        } else {
+          bar.style.background = 'var(--primary)';
+        }
+      });
+    }
+
+    // Send voice message
+    function sendVoiceMessage(audioBlob) {
+      const duration = Math.floor((Date.now() - recordStartTime) / 1000);
+      
+      // Convert blob to base64 for Firebase storage
+      const reader = new FileReader();
+      reader.onload = () => {
+        const audioData = reader.result;
+        
+        const message = {
+          text: `🎤 Голосовое сообщение (${formatTime(duration * 1000)})`,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName || currentUser.email,
+          timestamp: Date.now(),
+          isVoiceMessage: true,
+          duration: duration,
+          audioData: audioData,
+          mimeType: 'audio/webm'
+        };
+        
+        if (currentChat.isHelp) {
+          addMessageToChat(message);
+          showNotification('Голосовое сообщение отправлено в справку', 'success');
+        } else {
+          const chatId = generateChatId(currentUser.uid, currentChat.uid);
+          db.ref('chats/' + chatId + '/messages').push(message)
+            .then(() => {
+              showNotification('Голосовое сообщение отправлено', 'success');
+            })
+            .catch((error) => {
+              showNotification('Ошибка отправки голосового сообщения: ' + error.message, 'error');
+            });
+        }
+      };
+      
+      reader.readAsDataURL(audioBlob);
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('show');
+      }, 100);
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    // Handle file upload
+    function handleFileUpload() {
+      if (!currentChat) {
+        showNotification('Сначала выберите чат', 'warning');
+        return;
+      }
+
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '*/*';
+      fileInput.style.display = 'none';
+      
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          sendFileMessage(file);
+        }
+      });
+      
+      document.body.appendChild(fileInput);
+      fileInput.click();
+      document.body.removeChild(fileInput);
+    }
+
+    // Send file message
+    function sendFileMessage(file) {
+      if (!currentChat) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const fileData = e.target.result;
+        
+        const message = {
+          text: `📎 Файл: ${file.name} (${formatFileSize(file.size)})`,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName || currentUser.email,
+          timestamp: Date.now(),
+          file: {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            data: fileData
+          }
+        };
+        
+        if (currentChat.isHelp) {
+          addMessageToChat(message);
+          showNotification('Файл отправлен в справку', 'success');
+        } else {
+          const chatId = generateChatId(currentUser.uid, currentChat.uid);
+          db.ref('chats/' + chatId + '/messages').push(message)
+            .then(() => {
+              showNotification('Файл успешно отправлен', 'success');
+            })
+            .catch((error) => {
+              showNotification('Ошибка отправки файла: ' + error.message, 'error');
+            });
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Profile listeners
+    function setupProfileListeners() {
+      profileButton.addEventListener('click', showProfileModal);
+      closeProfile.addEventListener('click', hideProfileModal);
+      saveAvatar.addEventListener('click', saveAvatarHandler);
+      
+      profileAvatarElement.addEventListener('click', () => {
+        avatarUpload.click();
+      });
+      
+      avatarUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          selectedAvatarFile = file;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            profileAvatarElement.style.backgroundImage = `url(${e.target.result})`;
+            profileAvatarElement.textContent = '';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      // Close modal when clicking outside
+      profileModal.addEventListener('click', (e) => {
+        if (e.target === profileModal) {
+          hideProfileModal();
+        }
+      });
+    }
+
+    // Show profile modal
+    function showProfileModal() {
+      if (!currentUser) return;
+      
+      profileNameElement.textContent = currentUser.displayName || 'Пользователь';
+      profileEmailElement.textContent = currentUser.email;
+      
+      // Load current avatar
+      const userRef = db.ref('users/' + currentUser.uid);
+      userRef.once('value').then((snapshot) => {
+        const userData = snapshot.val();
+        if (userData && userData.avatar) {
+          profileAvatarElement.style.backgroundImage = `url(${userData.avatar})`;
+          profileAvatarElement.textContent = '';
+        } else {
+          profileAvatarElement.style.backgroundImage = '';
+          profileAvatarElement.textContent = (currentUser.displayName || 'П').charAt(0).toUpperCase();
+          profileAvatarElement.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+        }
+      });
+      
+      profileModal.style.display = 'flex';
+    }
+
+    // Hide profile modal
+    function hideProfileModal() {
+      profileModal.style.display = 'none';
+      selectedAvatarFile = null;
+    }
+
+    // Save avatar handler
+    async function saveAvatarHandler() {
+      if (!selectedAvatarFile) {
+        hideProfileModal();
+        return;
+      }
+
+      try {
+        const avatarData = await fileToDataURL(selectedAvatarFile);
+        const userRef = db.ref('users/' + currentUser.uid);
+        
+        await userRef.update({
+          avatar: avatarData
+        });
+        
+        // Update current user data
+        currentUser.avatar = avatarData;
+        
+        showNotification('Аватар успешно обновлен!', 'success');
+        hideProfileModal();
+        loadUserChats(); // Reload to update avatars
+        
+      } catch (error) {
+        console.error('Error saving avatar:', error);
+        showNotification('Ошибка при сохранении аватара', 'error');
+      }
+    }
+
+    // File to DataURL helper
+    function fileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Message input setup
+    function setupMessageInput() {
+      // Auto-resize textarea
+      messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+
+      // Send message on Enter (but allow Shift+Enter for new line)
+      messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Focus on input when chat is opened
+      messageInput.addEventListener('focus', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+    }
+
+    // Search functionality
+    function handleSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      
+      if (query.length === 0) {
+        searchResults.style.display = 'none';
+        return;
+      }
+      
+      // Filter users based on search query
+      const filteredUsers = allUsers.filter(user => 
+        user.uid !== currentUser.uid && (
+          (user.displayName && user.displayName.toLowerCase().includes(query)) ||
+          (user.email && user.email.toLowerCase().includes(query))
+        )
+      );
+      
+      displaySearchResults(filteredUsers);
+    }
+    
+    function displaySearchResults(users) {
+      searchResults.innerHTML = '';
+      
+      if (users.length === 0) {
+        searchResults.innerHTML = '<div class="no-results">Пользователи не найдены</div>';
+      } else {
+        users.forEach(user => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'search-result-item';
+          
+          const avatarText = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+          const avatarStyle = user.avatar ? `style="background-image: url(${user.avatar})"` : '';
+          
+          resultItem.innerHTML = `
+            <div class="search-result-avatar" ${avatarStyle}>${user.avatar ? '' : avatarText}</div>
+            <div class="search-result-info">
+              <div class="search-result-name">${user.displayName || 'Пользователь'}</div>
+              <div class="search-result-email">${user.email || ''}</div>
+            </div>
+          `;
+          
+          resultItem.addEventListener('click', () => {
+            openChat(user);
+            searchInput.value = '';
+            searchResults.style.display = 'none';
+          });
+          
+          searchResults.appendChild(resultItem);
+        });
+      }
+      
+      searchResults.style.display = 'block';
+    }
+
+    // Show auth screen
+    function showAuth() {
+      authScreen.style.display = 'flex';
+      appContainer.style.display = 'none';
+    }
+
+    // Show main app
+    function showApp() {
+      authScreen.style.display = 'none';
+      appContainer.style.display = 'block';
+    }
+
+    // Load user chats
+    function loadUserChats() {
+      chatsList.innerHTML = '';
+      
+      // Add Help Assistant to chats list
+      addHelpChatToList();
+      
+      // Load all users for search functionality
+      const usersRef = db.ref('users');
+      usersRef.on('value', (snapshot) => {
+        const users = snapshot.val();
+        allUsers = users ? Object.values(users) : [];
+        
+        // Display chats (all users except current user)
+        if (users) {
+          Object.values(users).forEach(user => {
+            if (user.uid !== currentUser.uid) {
+              addChatToList(user);
+            }
+          });
+        }
+        
+        // Если пользователей нет, создадим тестовых
+        if (allUsers.length === 0) {
+          createTestUsers();
+        }
+      });
+    }
+
+    // Create test users if none exist
+    function createTestUsers() {
+      const testUsers = [
+        {uid: 'test_user_1', displayName: 'Анна', email: 'anna@test.com', createdAt: Date.now()},
+        {uid: 'test_user_2', displayName: 'Иван', email: 'ivan@test.com', createdAt: Date.now()},
+        {uid: 'test_user_3', displayName: 'Мария', email: 'maria@test.com', createdAt: Date.now()}
+      ];
+      
+      testUsers.forEach(user => {
+        const userRef = db.ref('users/' + user.uid);
+        userRef.set(user);
+      });
+    }
+
+    // Add Help Assistant to sidebar
+    function addHelpChatToList() {
+      const chatItem = document.createElement('div');
+      chatItem.className = 'chat-item';
+      chatItem.dataset.userId = helpAssistant.uid;
+      
+      chatItem.innerHTML = `
+        <div class="chat-avatar help-avatar">
+          ?
+          <div class="help-badge">✓</div>
+        </div>
+        <div class="chat-info">
+          <div class="chat-name">
+            ${helpAssistant.displayName}
+            <span class="help-indicator">Справка</span>
+          </div>
+          <div class="chat-preview">Руководство по использованию</div>
+        </div>
+        <div class="chat-meta">
+          <div class="chat-time"></div>
+        </div>
+      `;
+      
+      chatItem.addEventListener('click', () => {
+        openChat(helpAssistant);
+      });
+      
+      chatsList.appendChild(chatItem);
+    }
+
+    // Add chat to sidebar
+    function addChatToList(user) {
+      const chatItem = document.createElement('div');
+      chatItem.className = 'chat-item';
+      chatItem.dataset.userId = user.uid;
+      
+      const avatarText = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+      const avatarStyle = user.avatar ? `style="background-image: url(${user.avatar})"` : '';
+      
+      chatItem.innerHTML = `
+        <div class="chat-avatar user-avatar" ${avatarStyle}>${user.avatar ? '' : avatarText}</div>
+        <div class="chat-info">
+          <div class="chat-name">${user.displayName || 'Пользователь'}</div>
+          <div class="chat-preview">Нажмите, чтобы начать чат</div>
+        </div>
+        <div class="chat-meta">
+          <div class="chat-time"></div>
+        </div>
+      `;
+      
+      chatItem.addEventListener('click', () => {
+        openChat(user);
+      });
+      
+      chatsList.appendChild(chatItem);
+    }
+
+    // Open chat with user
+    function openChat(user) {
+      currentChat = user;
+      
+      if (user.isHelp) {
+        chatName.innerHTML = `${user.displayName} <span class="help-indicator">✓ Справка</span>`;
+        chatStatus.innerHTML = '<span class="online-indicator"></span>онлайн • руководство';
+        chatAvatar.className = 'chat-avatar help-avatar';
+        chatAvatar.innerHTML = '?<div class="help-badge">✓</div>';
+        chatAvatar.style.display = 'flex';
+        callButtons.style.display = 'none';
+      } else {
+        chatName.textContent = user.displayName || 'Пользователь';
+        chatStatus.innerHTML = '<span class="online-indicator"></span>в сети';
+        chatAvatar.className = 'chat-avatar user-avatar';
+        
+        if (user.avatar) {
+          chatAvatar.style.backgroundImage = `url(${user.avatar})`;
+          chatAvatar.textContent = '';
+        } else {
+          chatAvatar.style.backgroundImage = '';
+          chatAvatar.textContent = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+        }
+        
+        chatAvatar.style.display = 'flex';
+        callButtons.style.display = 'flex';
+      }
+      
+      // Clear previous messages
+      chatMessages.innerHTML = '';
+      chatLoading.style.display = 'flex';
+      
+      // Focus on message input
+      setTimeout(() => {
+        messageInput.focus();
+      }, 100);
+      
+      if (user.isHelp) {
+        // Load help content
+        setTimeout(() => {
+          chatLoading.style.display = 'none';
+          showHelpContent();
+        }, 500);
+      } else {
+        // Generate chat ID (combination of both user IDs)
+        const chatId = generateChatId(currentUser.uid, user.uid);
+        
+        // Load messages for this chat
+        const messagesRef = db.ref('chats/' + chatId + '/messages');
+        messagesRef.on('value', (snapshot) => {
+          chatLoading.style.display = 'none';
+          const messages = snapshot.val();
+          chatMessages.innerHTML = '';
+          
+          if (messages) {
+            Object.entries(messages).forEach(([messageId, message]) => {
+              message.id = messageId;
+              addMessageToChat(message);
+            });
+          } else {
+            // No messages yet, show empty state
+            const emptyState = document.createElement('div');
+            emptyState.style.cssText = `
+              text-align: center;
+              color: #666;
+              padding: 40px 20px;
+              font-style: italic;
+            `;
+            emptyState.textContent = 'Начните общение - отправьте первое сообщение!';
+            chatMessages.appendChild(emptyState);
+          }
+          
+          // Scroll to bottom
+          scrollToBottom();
+        });
+      }
+    }
+
+    // Show help content
+    function showHelpContent() {
+      const welcomeMessage = {
+        text: "Добро пожаловать в справочник Stas Messenger! Здесь вы найдете всю информацию о функциях мессенджера.",
+        senderId: helpAssistant.uid,
+        senderName: helpAssistant.displayName,
+        timestamp: Date.now(),
+        isHelp: true
+      };
+      addMessageToChat(welcomeMessage);
+      
+      // Add quick action buttons
+      addHelpButtons();
+      
+      // Add help sections
+      addHelpSections();
+    }
+
+    // Add quick action buttons
+    function addHelpButtons() {
+      const buttonsContainer = document.createElement('div');
+      buttonsContainer.className = 'help-buttons';
+      
+      const buttons = [
+        { text: '📝 Отправка сообщений', topic: 'messages' },
+        { text: '📞 Звонки', topic: 'calls' },
+        { text: '👥 Поиск', topic: 'search' },
+        { text: '🎯 Реакции', topic: 'reactions' },
+        { text: '👤 Аватарка', topic: 'avatar' },
+        { text: '⚙️ Настройки', topic: 'settings' }
+      ];
+      
+      buttons.forEach(button => {
+        const btn = document.createElement('button');
+        btn.className = 'help-btn';
+        btn.textContent = button.text;
+        btn.onclick = () => showHelpTopic(button.topic);
+        buttonsContainer.appendChild(btn);
+      });
+      
+      const messageEl = document.createElement('div');
+      messageEl.className = 'message help';
+      messageEl.appendChild(buttonsContainer);
+      chatMessages.appendChild(messageEl);
+    }
+
+    // Add help sections
+    function addHelpSections() {
+      const sections = [
+        {
+          title: '💬 Основные функции',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Общение</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Отправка текстовых сообщений</li>
+                  <li>Реакции на сообщения 👍 ❤️ 😂</li>
+                  <li>Поиск по истории сообщений</li>
+                  <li>Статусы доставки и прочтения</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        {
+          title: '🎯 Реакции на сообщения',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Как ставить реакции</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Наведите на сообщение и нажмите кнопку "+"</li>
+                  <li>Выберите эмодзи из списка</li>
+                  <li>Реакции сохраняются в реальном времени</li>
+                  <li>Можно убрать реакцию повторным нажатием</li>
+                </ul>
+              </div>
+            </div>
+          `
+        }
+      ];
+      
+      sections.forEach(section => {
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'message help';
+        sectionEl.innerHTML = `
+          <strong>${section.title}</strong>
+          ${section.content}
+        `;
+        chatMessages.appendChild(sectionEl);
+      });
+      
+      scrollToBottom();
+    }
+
+    // Show specific help topic
+    function showHelpTopic(topic) {
+      const topics = {
+        messages: {
+          title: '📝 Отправка сообщений',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Как отправлять сообщения</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Введите текст в поле ввода и нажмите Enter или кнопку отправки</li>
+                  <li>Используйте Shift+Enter для переноса строки</li>
+                  <li>Сообщения сохраняются в реальном времени</li>
+                  <li>Двойные галочки ✓✓ означают доставку сообщения</li>
+                  <li>Все сообщения защищены шифрованием</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        calls: {
+          title: '📞 Звонки',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Как совершать звонки</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Нажмите кнопку 📞 для голосового звонка</li>
+                  <li>Нажмите кнопку 📹 для видеозвонка</li>
+                  <li>Разрешите доступ к микрофону и камере</li>
+                  <li>Звонки работают через защищенное соединение WebRTC</li>
+                  <li>Качество связи адаптируется под вашу скорость интернета</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        search: {
+          title: '🔍 Поиск пользователей',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Как найти пользователя</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Введите имя или email в поле поиска</li>
+                  <li>Выберите пользователя из результатов</li>
+                  <li>Начните новый чат или продолжите существующий</li>
+                  <li>Поиск работает в реальном времени</li>
+                  <li>Можно искать по части имени или email</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        reactions: {
+          title: '🎯 Реакции на сообщения',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Доступные реакции</div>
+              <div class="help-section-content">
+                <p>Доступные эмодзи: ${availableReactions.join(' ')}</p>
+                <ul class="help-feature-list">
+                  <li><strong>Наведите на сообщение</strong> - появится кнопка "+"</li>
+                  <li><strong>Нажмите "+"</strong> - откроется панель реакций</li>
+                  <li><strong>Выберите эмодзи</strong> - реакция добавится к сообщению</li>
+                  <li><strong>Повторное нажатие</strong> - убирает реакцию</li>
+                  <li><strong>Видно всем</strong> - реакции видны всем участникам чата</li>
+                  <li><strong>Real-time</strong> - реакции обновляются мгновенно</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        avatar: {
+          title: '👤 Смена аватарки',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Как сменить аватарку</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Нажмите на кнопку 👤 в правом верхнем углу</li>
+                  <li>В открывшемся окне нажмите на текущую аватарку</li>
+                  <li>Выберите изображение с вашего устройства</li>
+                  <li>Нажмите "Сохранить аватар"</li>
+                  <li>Новая аватарка отобразится у всех ваших контактов</li>
+                  <li>Поддерживаются форматы JPG, PNG, GIF</li>
+                </ul>
+              </div>
+            </div>
+          `
+        },
+        settings: {
+          title: '⚙️ Настройки профиля',
+          content: `
+            <div class="help-section">
+              <div class="help-section-title">Доступные настройки</div>
+              <div class="help-section-content">
+                <ul class="help-feature-list">
+                  <li>Смена аватарки профиля</li>
+                  <li>Отображение имени для других пользователей</li>
+                  <li>Настройки уведомлений (в разработке)</li>
+                  <li>Тема оформления (в разработке)</li>
+                  <li>Язык интерфейса (в разработке)</li>
+                  <li>Конфиденциальность (в разработке)</li>
+                </ul>
+              </div>
+            </div>
+          `
+        }
+      };
+      
+      const topicData = topics[topic];
+      if (topicData) {
+        const topicEl = document.createElement('div');
+        topicEl.className = 'message help';
+        topicEl.innerHTML = `
+          <strong>${topicData.title}</strong>
+          ${topicData.content}
+        `;
+        chatMessages.appendChild(topicEl);
+        scrollToBottom();
+      }
+    }
+
+    // Generate unique chat ID from two user IDs
+    function generateChatId(uid1, uid2) {
+      return [uid1, uid2].sort().join('_');
+    }
+
+    // Add message to chat UI
+    function addMessageToChat(message) {
+      const messageEl = document.createElement('div');
+      const isSent = message.senderId === currentUser.uid;
+      const isHelp = message.isHelp || message.senderId === helpAssistant.uid;
+      
+      if (isHelp) {
+        messageEl.className = 'message help';
+      } else {
+        messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
+      }
+      
+      // Add animation
+      messageEl.classList.add('message-animation');
+      
+      // Add status indicator for sent messages
+      let statusIndicator = '';
+      if (isSent && !isHelp) {
+        statusIndicator = '<span class="message-status delivered-status">✓✓</span>';
+      }
+      
+      // Handle voice messages
+      let messageContent = '';
+      if (message.isVoiceMessage) {
+        messageContent = `
+          <div class="voice-message" data-audio-data="${message.audioData || ''}">
+            <button class="voice-play-btn" onclick="playVoiceMessage(this)">▶️</button>
+            <div class="voice-waveform">
+              <div class="voice-progress"></div>
+            </div>
+            <div class="voice-duration">${formatTime((message.duration || 0) * 1000)}</div>
+          </div>
+        `;
+      } else {
+        messageContent = `<div>${escapeHtml(message.text)}</div>`;
+      }
+      
+      messageEl.innerHTML = `
+        ${messageContent}
+        <div class="message-time">${formatTime(message.timestamp)}${statusIndicator}</div>
+      `;
+      
+      // Add delete button for user's own messages
+      if (isSent && !isHelp) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-message-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.title = 'Удалить сообщение';
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteMessage(message);
+        };
+        messageEl.appendChild(deleteBtn);
+      }
+      
+      // Add reactions if they exist
+      if (message.reactions && Object.keys(message.reactions).length > 0) {
+        const reactionsContainer = createReactionsContainer(message);
+        messageEl.appendChild(reactionsContainer);
+      }
+      
+      // Add reaction button for non-help messages
+      if (!isHelp) {
+        const addReactionBtn = document.createElement('button');
+        addReactionBtn.className = 'add-reaction-btn';
+        addReactionBtn.innerHTML = '+';
+        addReactionBtn.title = 'Добавить реакцию';
+        
+        const reactionsPanel = createReactionsPanel(message);
+        messageEl.appendChild(reactionsPanel);
+        
+        addReactionBtn.onclick = (e) => {
+          e.stopPropagation();
+          reactionsPanel.classList.toggle('show');
+        };
+        
+        messageEl.appendChild(addReactionBtn);
+        
+        // Show reaction button on hover
+        messageEl.addEventListener('mouseenter', () => {
+          addReactionBtn.style.display = 'flex';
+        });
+        
+        messageEl.addEventListener('mouseleave', () => {
+          addReactionBtn.style.display = 'none';
+          reactionsPanel.classList.remove('show');
+        });
+      }
+      
+      messageEl.dataset.messageId = message.id;
+      chatMessages.appendChild(messageEl);
+      scrollToBottom();
+    }
+
+    // Delete message
+    function deleteMessage(message) {
+      if (!currentChat || currentChat.isHelp) return;
+      
+      if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
+        const chatId = generateChatId(currentUser.uid, currentChat.uid);
+        const messageRef = db.ref(`chats/${chatId}/messages/${message.id}`);
+        
+        messageRef.remove()
+          .then(() => {
+            showNotification('Сообщение удалено', 'success');
+          })
+          .catch((error) => {
+            showNotification('Ошибка при удалении сообщения', 'error');
+          });
+      }
+    }
+
+    // Play voice message
+    window.playVoiceMessage = function(button) {
+      const voiceMessage = button.closest('.voice-message');
+      const audioData = voiceMessage.dataset.audioData;
+      const progressBar = voiceMessage.querySelector('.voice-progress');
+      const durationElement = voiceMessage.querySelector('.voice-duration');
+      
+      if (!audioData) {
+        console.log('No audio data available');
+        return;
+      }
+      
+      // Create audio element
+      const audio = new Audio(audioData);
+      
+      // Update button state
+      button.classList.add('playing');
+      button.innerHTML = '⏸️';
+      
+      // Update progress during playback
+      audio.addEventListener('timeupdate', () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+      });
+      
+      // Reset when finished
+      audio.addEventListener('ended', () => {
+        button.classList.remove('playing');
+        button.innerHTML = '▶️';
+        progressBar.style.width = '0%';
+      });
+      
+      // Play audio
+      audio.play().catch(error => {
+        console.log('Error playing audio:', error);
+        button.classList.remove('playing');
+        button.innerHTML = '▶️';
+      });
+      
+      // Change button to stop on click during playback
+      button.onclick = function() {
+        if (audio.paused) {
+          audio.play();
+          button.innerHTML = '⏸️';
+        } else {
+          audio.pause();
+          button.innerHTML = '▶️';
+          button.classList.remove('playing');
+        }
+      };
+    };
+
+    // Create reactions container
+    function createReactionsContainer(message) {
+      const container = document.createElement('div');
+      container.className = 'reactions-container';
+      
+      // Group reactions by emoji
+      const reactionCounts = {};
+      Object.values(message.reactions || {}).forEach(emoji => {
+        reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+      });
+      
+      // Create reaction elements
+      Object.entries(reactionCounts).forEach(([emoji, count]) => {
+        const isMyReaction = Object.entries(message.reactions || {}).some(([userId, reactionEmoji]) => 
+          userId === currentUser.uid && reactionEmoji === emoji
+        );
+        
+        const reactionEl = document.createElement('div');
+        reactionEl.className = `reaction ${isMyReaction ? 'my-reaction' : ''}`;
+        reactionEl.innerHTML = `
+          <span class="reaction-emoji">${emoji}</span>
+          <span class="reaction-count">${count}</span>
+        `;
+        
+        reactionEl.onclick = async (e) => {
+          e.stopPropagation();
+          await toggleReaction(message, emoji);
+        };
+        
+        container.appendChild(reactionEl);
+      });
+      
+      return container;
+    }
+
+    // Create reactions panel
+    function createReactionsPanel(message) {
+      const panel = document.createElement('div');
+      panel.className = 'reactions-panel';
+      
+      availableReactions.forEach(emoji => {
+        const option = document.createElement('button');
+        option.className = 'reaction-option';
+        option.textContent = emoji;
+        option.onclick = async (e) => {
+          e.stopPropagation();
+          await toggleReaction(message, emoji);
+          panel.classList.remove('show');
+        };
+        panel.appendChild(option);
+      });
+      
+      return panel;
+    }
+
+    // Toggle reaction
+    async function toggleReaction(message, emoji) {
+      if (!currentChat || currentChat.isHelp) return;
+      
+      const chatId = generateChatId(currentUser.uid, currentChat.uid);
+      const reactionPath = `chats/${chatId}/messages/${message.id}/reactions/${currentUser.uid}`;
+      
+      try {
+        const reactionRef = db.ref(reactionPath);
+        const snapshot = await reactionRef.once('value');
+        const currentReaction = snapshot.val();
+        
+        if (currentReaction === emoji) {
+          // Remove reaction
+          await reactionRef.set(null);
+        } else {
+          // Add or change reaction
+          await reactionRef.set(emoji);
+        }
+      } catch (error) {
+        console.error('Ошибка при обновлении реакции:', error);
+        showNotification('Ошибка при добавлении реакции', 'error');
+      }
+    }
+
+    // Scroll to bottom of chat
+    function scrollToBottom() {
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 100);
+    }
+
+    // Send message
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || !currentChat) {
+        showNotification('Введите сообщение', 'warning');
+        return;
+      }
+      
+      // Clear input and reset height
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      
+      if (currentChat.isHelp) {
+        // Handle help conversation
+        handleHelpResponse(text);
+      } else {
+        // Handle regular user conversation
+        const message = {
+          text: text,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName || currentUser.email,
+          timestamp: Date.now()
+        };
+        
+        const chatId = generateChatId(currentUser.uid, currentChat.uid);
+        
+        // Add message to database
+        db.ref('chats/' + chatId + '/messages').push(message)
+          .then(() => {
+            showNotification('Сообщение отправлено', 'success');
+          })
+          .catch((error) => {
+            showNotification('Ошибка отправки сообщения: ' + error.message, 'error');
+          });
+      }
+    }
+
+    // Handle help response
+    function handleHelpResponse(userMessage) {
+      // Add user message to chat
+      const userMsg = {
+        text: userMessage,
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || currentUser.email,
+        timestamp: Date.now()
+      };
+      addMessageToChat(userMsg);
+      
+      // Generate help response
+      const helpResponse = generateHelpResponse(userMessage);
+      const helpMessage = {
+        text: helpResponse,
+        senderId: helpAssistant.uid,
+        senderName: helpAssistant.displayName,
+        timestamp: Date.now(),
+        isHelp: true
+      };
+      
+      setTimeout(() => {
+        addMessageToChat(helpMessage);
+      }, 500);
+    }
+
+    // Generate help response
+    function generateHelpResponse(userMessage) {
+      const message = userMessage.toLowerCase();
+      
+      if (message.includes('реакц') || message.includes('эмодзи') || message.includes('emoji')) {
+        return `Для добавления реакций:\n1. Наведите на сообщение\n2. Нажмите кнопку "+"\n3. Выберите эмодзи: ${availableReactions.join(' ')}\n4. Повторное нажатие убирает реакцию`;
+      } else if (message.includes('аватар') || message.includes('фото') || message.includes('avatar')) {
+        return "Для смены аватарки:\n1. Нажмите кнопку 👤 в правом верхнем углу\n2. Нажмите на текущую аватарку\n3. Выберите изображение с компьютера\n4. Нажмите 'Сохранить аватар'";
+      } else if (message.includes('сообщен') || message.includes('отправ')) {
+        return "Для отправки сообщения:\n1. Выберите чат\n2. Введите текст в поле ввода\n3. Нажмите Enter или кнопку отправки\n4. Используйте Shift+Enter для новой строки";
+      } else if (message.includes('звон') || message.includes('вызов')) {
+        return "Для совершения звонка:\n1. Откройте чат с пользователем\n2. Нажмите 📞 для голосового звонка\n3. Или 📹 для видеозвонка\n4. Разрешите доступ к микрофону/камере";
+      } else if (message.includes('поиск') || message.includes('найт')) {
+        return "Для поиска пользователей:\n1. Введите имя или email в поле поиска\n2. Выберите пользователя из результатов\n3. Начните новый чат";
+      } else if (message.includes('удал') || message.includes('delete')) {
+        return "Для удаления сообщений:\n1. Наведите на свое сообщение\n2. Нажмите на крестик в правом верхнем углу\n3. Подтвердите удаление\n4. Сообщение будет удалено у всех участников чата";
+      } else if (message.includes('аккаунт') || message.includes('настройк')) {
+        return "Для изменения данных аккаунта:\n1. Перейдите во вкладку 'Аккаунт'\n2. Измените нужные данные\n3. Нажмите 'Сохранить изменения'\n4. Можно изменить имя, email и пароль";
+      } else {
+        return "Я помогу вам разобраться с Stas Messenger! Задайте вопрос о:\n• Реакциях на сообщения\n• Смене аватарки\n• Отправке сообщений\n• Звонках\n• Поиске пользователей\n• Удалении сообщений\n• Настройках аккаунта\nИли нажмите на одну из кнопок выше для быстрого доступа к информации.";
+      }
+    }
+
+    // Utility functions
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Initialize the app
+    init();
+  </script>
+</body>
+</html>
