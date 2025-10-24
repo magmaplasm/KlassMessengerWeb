@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Clicker Game - Админ Панель</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #fdbb2d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .auth-section {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .admin-btn {
+            background: rgba(220, 53, 69, 0.7);
+        }
+        
+        .admin-btn:hover {
+            background: rgba(220, 53, 69, 0.9);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+            .chat-section, .friends-section {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .game-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        .admin-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            grid-column: 1 / -1;
+        }
+        
+        .chat-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .friends-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .admin-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .admin-panel {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .admin-panel h3 {
+            margin-bottom: 15px;
+            color: #fdbb2d;
+        }
+        
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .user-actions button {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        
+        .click-area {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #fdbb2d, #b21f1f);
+            border-radius: 50%;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.1s ease;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .click-area:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .click-area.blocked {
+            background: linear-gradient(135deg, #666, #333);
+            cursor: not-allowed;
+        }
+        
+        .click-area.blocked:active {
+            transform: scale(1);
+        }
+        
+        .blocked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .trend-indicator {
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+        
+        .trend-up {
+            color: #4CAF50;
+        }
+        
+        .trend-down {
+            color: #F44336;
+        }
+        
+        .trend-neutral {
+            color: #FFC107;
+        }
+        
+        .cps-warning {
+            color: #ff6b6b;
+            font-weight: bold;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+        
+        .leaderboard-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .leaderboard {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .leaderboard-item.current-user {
+            background: rgba(253, 187, 45, 0.3);
+            border-left: 5px solid #fdbb2d;
+        }
+        
+        .rank {
+            font-weight: bold;
+            width: 30px;
+        }
+        
+        .player-name {
+            flex: 1;
+            margin: 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .player-score {
+            font-weight: bold;
+        }
+        
+        .auth-modal, .nickname-modal, .admin-modal, .event-modal, .clicks-modal, .friends-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-form, .nickname-form, .admin-form, .event-form, .clicks-form, .friends-form {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .auth-form h2, .nickname-form h2, .admin-form h2, .event-form h2, .clicks-form h2, .friends-form h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .auth-form input, .nickname-form input, .admin-form input, .event-form input, .event-form select, .clicks-form input, .friends-form input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .auth-buttons, .nickname-buttons, .admin-buttons, .event-buttons, .clicks-buttons, .friends-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .auth-buttons button, .nickname-buttons button, .admin-buttons button, .event-buttons button, .clicks-buttons button, .friends-buttons button {
+            flex: 1;
+        }
+        
+        .close-modal {
+            background: rgba(255, 255, 255, 0.1);
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .game-info {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .change-nickname {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #fdbb2d;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .leaderboard-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .leaderboard-controls button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .leaderboard-controls button.active {
+            background: rgba(253, 187, 45, 0.5);
+        }
+        
+        .cps-meter {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow-y: hidden;
+        }
+        
+        .cps-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .admin-only {
+            display: none;
+        }
+        
+        .admin-badge {
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+        
+        .event-notification {
+            background: rgba(76, 175, 80, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .admin-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .action-with-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .action-with-input input {
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Чат стили */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            max-height: 400px;
+        }
+        
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+        
+        .chat-message.admin-action {
+            background: rgba(220, 53, 69, 0.3);
+            border-left: 3px solid #dc3545;
+        }
+        
+        .chat-message.system {
+            background: rgba(255, 193, 7, 0.3);
+            border-left: 3px solid #FFC107;
+            font-style: italic;
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            margin-right: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .message-text {
+            margin-top: 3px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .send-button {
+            padding: 12px 20px;
+            white-space: nowrap;
+        }
+        
+        /* Галочки */
+        .verified-badge {
+            color: #1DA1F2;
+            font-size: 0.9rem;
+        }
+        
+        .admin-badge-chat {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            margin-left: 5px;
+        }
+        
+        .user-with-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Система друзей */
+        .friends-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            max-height: 300px;
+        }
+        
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .friend-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .friend-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .friend-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .friend-actions button {
+            padding: 5px 10px;
+            font-size: 0.7rem;
+        }
+        
+        .friends-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .friends-controls button {
+            flex: 1;
+        }
+        
+        .trend-chart {
+            height: 100px;
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .trend-line {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+        }
+        
+        .trend-bar {
+            width: 8px;
+            background: linear-gradient(to top, #4CAF50, #FFC107);
+            border-radius: 2px;
+            transition: height 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">FireClicker <span class="admin-badge" id="adminBadge" style="display: none;">ADMIN</span></div>
+            <div class="user-info">
+                <div id="userDisplay" class="user-display" style="display: none;">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Пользователь</span>
+                    <span id="userVerified" class="verified-badge" style="display: none;">✓</span>
+                </div>
+                <div class="auth-section">
+                    <button id="adminPanelBtn" class="admin-btn admin-only">Админ Панель</button>
+                    <button id="loginBtn">Войти</button>
+                    <button id="registerBtn">Регистрация</button>
+                    <button id="logoutBtn" style="display: none;">Выйти</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="game-section">
+                <h2 class="section-title">Кликер</h2>
+                <div id="eventNotification" class="event-notification" style="display: none;">
+                    <!-- Уведомление о событии будет здесь -->
+                </div>
+                <div class="click-area" id="clickArea">
+                    <span id="clickText">КЛИКАЙ!</span>
+                    <div class="blocked-overlay" id="blockedOverlay" style="display: none;">СЛИШКОМ БЫСТРО!</div>
+                </div>
+                <div class="cps-meter">
+                    <div class="cps-fill" id="cpsFill"></div>
+                </div>
+                <div class="cps-warning" id="cpsWarning"></div>
+                <div class="stats">
+                    <div class="stat">
+                        <div>Клики</div>
+                        <div class="stat-value" id="clickCount">0</div>
+                    </div>
+                    <div class="stat">
+                        <div>Лучший результат</div>
+                        <div class="stat-value" id="bestScore">0</div>
+                    </div>
+                    <div class="stat">
+                        <div>Кликов/сек</div>
+                        <div class="stat-value" id="cpsValue">0</div>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <p>Войдите в аккаунт, чтобы сохранить свой прогресс и попасть в лидерборд!</p>
+                    <p>Ограничение: не более 12 кликов в секунду</p>
+                    <div class="change-nickname" id="changeNickname" style="display: none;">Изменить никнейм</div>
+                </div>
+            </div>
+            
+            <div class="leaderboard-section">
+                <h2 class="section-title">Лидерборд</h2>
+                <div class="leaderboard-controls">
+                    <button id="showTop10" class="active">Топ-10</button>
+                    <button id="showTop25">Топ-25</button>
+                    <button id="showAll">Все игроки</button>
+                </div>
+                <ul class="leaderboard" id="leaderboard">
+                    <!-- Лидерборд будет заполнен через JS -->
+                </ul>
+            </div>
+            
+            <div class="friends-section">
+                <h2 class="section-title">Друзья</h2>
+                <div class="friends-controls">
+                    <button id="addFriendBtn">Добавить друга</button>
+                    <button id="refreshFriends">Обновить</button>
+                </div>
+                <div class="friends-list" id="friendsList">
+                    <!-- Список друзей будет здесь -->
+                </div>
+            </div>
+            
+            <div class="chat-section">
+                <h2 class="section-title">Чат</h2>
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Сообщения чата будут здесь -->
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Введите сообщение..." maxlength="200">
+                    <button class="send-button" id="sendMessage">Отправить</button>
+                </div>
+            </div>
+            
+            <div class="admin-section admin-only" id="adminSection">
+                <h2 class="section-title">Админ Панель</h2>
+                <div class="admin-controls">
+                    <div class="admin-panel">
+                        <h3>Управление пользователями</h3>
+                        <div class="user-list" id="userList">
+                            <!-- Список пользователей будет заполнен через JS -->
+                        </div>
+                        <button id="refreshUsers">Обновить список</button>
+                    </div>
+                    
+                    <div class="admin-panel">
+                        <h3>Быстрые действия с кликами</h3>
+                        <div class="admin-quick-actions">
+                            <div class="action-with-input">
+                                <input type="number" id="clicksToOnlineInput" placeholder="Кол-во кликов" value="1000">
+                                <button id="addClicksToOnline">Добавить онлайн</button>
+                            </div>
+                            <div class="action-with-input">
+                                <input type="number" id="clicksToMeInput" placeholder="Кол-во кликов" value="5000">
+                                <button id="addMyClicks">Добавить себе</button>
+                            </div>
+                            <div class="action-with-input">
+                                <input type="number" id="clicksToAllInput" placeholder="Кол-во кликов" value="1000">
+                                <button id="addClicksToAll">Добавить всем</button>
+                            </div>
+                            <button id="createEvent">Создать ивент</button>
+                            <button id="resetAllScores">Обнулить все</button>
+                            <button id="deleteInactive">Удалить неактивных</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальные окна -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-form">
+            <h2 id="authModalTitle">Вход</h2>
+            <input type="email" id="authEmail" placeholder="Email">
+            <input type="password" id="authPassword" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button id="authSubmit">Войти</button>
+                <button id="authCancel">Отмена</button>
+            </div>
+            <div class="close-modal" id="closeAuthModal">×</div>
+        </div>
+    </div>
+    
+    <div class="nickname-modal" id="nicknameModal">
+        <div class="nickname-form">
+            <h2>Установить никнейм</h2>
+            <input type="text" id="nicknameInput" placeholder="Введите ваш никнейм" maxlength="15">
+            <div class="nickname-buttons">
+                <button id="saveNickname">Сохранить</button>
+                <button id="cancelNickname">Отмена</button>
+            </div>
+            <div class="close-modal" id="closeNicknameModal">×</div>
+        </div>
+    </div>
+    
+    <div class="admin-modal" id="adminModal">
+        <div class="admin-form">
+            <h2 id="adminModalTitle">Редактирование пользователя</h2>
+            <div id="adminUserInfo" style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;"></div>
+            <input type="number" id="adminClicksInput" placeholder="Новое количество кликов">
+            <input type="number" id="adminBestScoreInput" placeholder="Новый лучший результат">
+            <div class="admin-buttons">
+                <button id="adminSave">Сохранить</button>
+                <button id="adminDelete">Удалить аккаунт</button>
+                <button id="toggleVerified">Переключить галочку</button>
+                <button id="adminCancel">Отмена</button>
+            </div>
+            <div class="close-modal" id="closeAdminModal">×</div>
+        </div>
+    </div>
+    
+    <div class="event-modal" id="eventModal">
+        <div class="event-form">
+            <h2>Создание события</h2>
+            <select id="eventMultiplier">
+                <option value="2">2x - Двойные клики</option>
+                <option value="3">3x - Тройные клики</option>
+                <option value="5">5x - Пятерные клики</option>
+                <option value="10">10x - Десятерные клики</option>
+            </select>
+            <select id="eventDuration">
+                <option value="5">5 минут</option>
+                <option value="10">10 минут</option>
+                <option value="30">30 минут</option>
+                <option value="60">1 час</option>
+                <option value="120">2 часа</option>
+                <option value="360">6 часов</option>
+                <option value="720">12 часов</option>
+                <option value="1440">24 часа</option>
+            </select>
+            <div class="event-buttons">
+                <button id="startEvent">Запустить событие</button>
+                <button id="stopEvent">Остановить событие</button>
+                <button id="cancelEvent">Отмена</button>
+            </div>
+            <div class="close-modal" id="closeEventModal">×</div>
+        </div>
+    </div>
+    
+    <div class="clicks-modal" id="customClicksModal">
+        <div class="clicks-form">
+            <h2 id="customClicksTitle">Добавление кликов</h2>
+            <input type="number" id="customClicksInput" placeholder="Введите количество кликов">
+            <div class="clicks-buttons">
+                <button id="confirmCustomClicks">Добавить</button>
+                <button id="cancelCustomClicks">Отмена</button>
+            </div>
+            <div class="close-modal" id="closeCustomClicksModal">×</div>
+        </div>
+    </div>
+    
+    <div class="friends-modal" id="friendsModal">
+        <div class="friends-form">
+            <h2>Добавить друга</h2>
+            <input type="text" id="friendSearchInput" placeholder="Введите email или никнейм">
+            <div class="friends-buttons">
+                <button id="searchFriend">Найти</button>
+                <button id="cancelFriend">Отмена</button>
+            </div>
+            <div id="friendSearchResults" style="margin-top: 15px;">
+                <!-- Результаты поиска будут здесь -->
+            </div>
+            <div class="close-modal" id="closeFriendsModal">×</div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4mvrBrKNEmPQ7JDfbnEGAxb9ETen8KsA",
+            authDomain: "clicking-697ae.firebaseapp.com",
+            projectId: "clicking-697ae",
+            storageBucket: "clicking-697ae.firebasestorage.app",
+            messagingSenderId: "479295856325",
+            appId: "1:479295856325:web:dc0b0dcf661cd66941daac",
+            databaseURL: "https://clicking-697ae-default-rtdb.firebaseio.com/"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Состояние игры
+        let gameState = {
+            clicks: 0,
+            bestScore: 0,
+            clickMultiplier: 1,
+            previousClicks: 0,
+            previousBestScore: 0,
+            previousCPS: 0,
+            clickHistory: []
+        };
+
+        // Настройки лидерборда
+        let leaderboardLimit = 10;
+
+        // Система защиты от быстрых кликов
+        const MAX_CPS = 12;
+        let clickTimestamps = [];
+        let currentCPS = 0;
+        let isBlocked = false;
+        let blockTimeout = null;
+
+        // Админские настройки
+        const ADMIN_EMAILS = ['magmaplasm@gmail.com'];
+        let isAdmin = false;
+        let selectedUser = null;
+        let currentAction = null;
+
+        // DOM элементы
+        const clickArea = document.getElementById('clickArea');
+        const clickText = document.getElementById('clickText');
+        const blockedOverlay = document.getElementById('blockedOverlay');
+        const clickCount = document.getElementById('clickCount');
+        const bestScore = document.getElementById('bestScore');
+        const cpsValue = document.getElementById('cpsValue');
+        const cpsWarning = document.getElementById('cpsWarning');
+        const cpsFill = document.getElementById('cpsFill');
+        const leaderboard = document.getElementById('leaderboard');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
+        const adminSection = document.getElementById('adminSection');
+        const adminBadge = document.getElementById('adminBadge');
+        const authModal = document.getElementById('authModal');
+        const authModalTitle = document.getElementById('authModalTitle');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authSubmit = document.getElementById('authSubmit');
+        const authCancel = document.getElementById('authCancel');
+        const closeAuthModal = document.getElementById('closeAuthModal');
+        const userDisplay = document.getElementById('userDisplay');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const userVerified = document.getElementById('userVerified');
+        const changeNickname = document.getElementById('changeNickname');
+        const nicknameModal = document.getElementById('nicknameModal');
+        const nicknameInput = document.getElementById('nicknameInput');
+        const saveNickname = document.getElementById('saveNickname');
+        const cancelNickname = document.getElementById('cancelNickname');
+        const closeNicknameModal = document.getElementById('closeNicknameModal');
+        const showTop10 = document.getElementById('showTop10');
+        const showTop25 = document.getElementById('showTop25');
+        const showAll = document.getElementById('showAll');
+        const eventNotification = document.getElementById('eventNotification');
+        const userList = document.getElementById('userList');
+        const refreshUsers = document.getElementById('refreshUsers');
+        const resetAllScores = document.getElementById('resetAllScores');
+        const addClicksToAll = document.getElementById('addClicksToAll');
+        const deleteInactive = document.getElementById('deleteInactive');
+        const addClicksToOnline = document.getElementById('addClicksToOnline');
+        const addMyClicks = document.getElementById('addMyClicks');
+        const createEvent = document.getElementById('createEvent');
+        const adminModal = document.getElementById('adminModal');
+        const adminModalTitle = document.getElementById('adminModalTitle');
+        const adminUserInfo = document.getElementById('adminUserInfo');
+        const adminClicksInput = document.getElementById('adminClicksInput');
+        const adminBestScoreInput = document.getElementById('adminBestScoreInput');
+        const adminSave = document.getElementById('adminSave');
+        const adminDelete = document.getElementById('adminDelete');
+        const toggleVerified = document.getElementById('toggleVerified');
+        const adminCancel = document.getElementById('adminCancel');
+        const closeAdminModal = document.getElementById('closeAdminModal');
+        const eventModal = document.getElementById('eventModal');
+        const eventMultiplier = document.getElementById('eventMultiplier');
+        const eventDuration = document.getElementById('eventDuration');
+        const startEvent = document.getElementById('startEvent');
+        const stopEvent = document.getElementById('stopEvent');
+        const cancelEvent = document.getElementById('cancelEvent');
+        const closeEventModal = document.getElementById('closeEventModal');
+        const customClicksModal = document.getElementById('customClicksModal');
+        const customClicksTitle = document.getElementById('customClicksTitle');
+        const customClicksInput = document.getElementById('customClicksInput');
+        const confirmCustomClicks = document.getElementById('confirmCustomClicks');
+        const cancelCustomClicks = document.getElementById('cancelCustomClicks');
+        const closeCustomClicksModal = document.getElementById('closeCustomClicksModal');
+        const clicksToOnlineInput = document.getElementById('clicksToOnlineInput');
+        const clicksToMeInput = document.getElementById('clicksToMeInput');
+        const clicksToAllInput = document.getElementById('clicksToAllInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendMessage = document.getElementById('sendMessage');
+        const friendsList = document.getElementById('friendsList');
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        const refreshFriends = document.getElementById('refreshFriends');
+        const friendsModal = document.getElementById('friendsModal');
+        const friendSearchInput = document.getElementById('friendSearchInput');
+        const searchFriend = document.getElementById('searchFriend');
+        const cancelFriend = document.getElementById('cancelFriend');
+        const closeFriendsModal = document.getElementById('closeFriendsModal');
+        const friendSearchResults = document.getElementById('friendSearchResults');
+
+        // Инициализация приложения
+        function initApp() {
+            // Слушатели аутентификации
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // Пользователь вошел в систему
+                    handleUserLogin(user);
+                } else {
+                    // Пользователь вышел из системы
+                    handleUserLogout();
+                }
+            });
+
+            // Слушатели событий
+            setupEventListeners();
+            
+            // Загрузка лидерборда
+            loadLeaderboard();
+            
+            // Загрузка чата
+            loadChat();
+            
+            // Загрузка начального состояния игры
+            loadGameState();
+            
+            // Обновление CPS каждую секунду
+            setInterval(updateCPS, 1000);
+        }
+
+        // Обработка входа пользователя
+        function handleUserLogin(user) {
+            console.log("Пользователь вошел:", user.email);
+            
+            // Проверка на админа
+            isAdmin = ADMIN_EMAILS.includes(user.email);
+            
+            // Обновление UI
+            loginBtn.style.display = 'none';
+            registerBtn.style.display = 'none';
+            logoutBtn.style.display = 'block';
+            userDisplay.style.display = 'flex';
+            
+            if (isAdmin) {
+                adminPanelBtn.style.display = 'block';
+                adminBadge.style.display = 'inline';
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            }
+            
+            // Загрузка данных пользователя
+            loadUserData(user.uid);
+            
+            // Загрузка списка пользователей для админа
+            if (isAdmin) {
+                loadUserList();
+            }
+            
+            // Загрузка друзей
+            loadFriends();
+        }
+
+        // Обработка выхода пользователя
+        function handleUserLogout() {
+            console.log("Пользователь вышел");
+            
+            // Сохранение состояния игры перед выходом
+            if (auth.currentUser) {
+                saveGameState();
+            }
+            
+            // Сброс состояния
+            gameState.clicks = 0;
+            gameState.bestScore = 0;
+            gameState.clickMultiplier = 1;
+            gameState.previousClicks = 0;
+            gameState.previousBestScore = 0;
+            gameState.previousCPS = 0;
+            gameState.clickHistory = [];
+            
+            // Обновление UI
+            loginBtn.style.display = 'block';
+            registerBtn.style.display = 'block';
+            logoutBtn.style.display = 'none';
+            userDisplay.style.display = 'none';
+            adminPanelBtn.style.display = 'none';
+            adminBadge.style.display = 'none';
+            adminSection.style.display = 'none';
+            changeNickname.style.display = 'none';
+            userVerified.style.display = 'none';
+            
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Обновление отображения
+            updateGameDisplay();
+            
+            // Перезагрузка лидерборда
+            loadLeaderboard();
+        }
+
+        // Настройка слушателей событий
+        function setupEventListeners() {
+            // Кликер
+            clickArea.addEventListener('click', handleClick);
+            
+            // Аутентификация
+            loginBtn.addEventListener('click', () => showAuthModal('login'));
+            registerBtn.addEventListener('click', () => showAuthModal('register'));
+            logoutBtn.addEventListener('click', handleLogout);
+            authSubmit.addEventListener('click', handleAuthSubmit);
+            authCancel.addEventListener('click', hideAuthModal);
+            closeAuthModal.addEventListener('click', hideAuthModal);
+            
+            // Никнейм
+            changeNickname.addEventListener('click', showNicknameModal);
+            saveNickname.addEventListener('click', saveNicknameHandler);
+            cancelNickname.addEventListener('click', hideNicknameModal);
+            closeNicknameModal.addEventListener('click', hideNicknameModal);
+            
+            // Лидерборд
+            showTop10.addEventListener('click', () => changeLeaderboardLimit(10));
+            showTop25.addEventListener('click', () => changeLeaderboardLimit(25));
+            showAll.addEventListener('click', () => changeLeaderboardLimit(0));
+            
+            // Админ панель
+            adminPanelBtn.addEventListener('click', toggleAdminPanel);
+            refreshUsers.addEventListener('click', loadUserList);
+            resetAllScores.addEventListener('click', resetAllScoresHandler);
+            addClicksToAll.addEventListener('click', () => showCustomClicksModal('all'));
+            deleteInactive.addEventListener('click', deleteInactiveUsers);
+            addClicksToOnline.addEventListener('click', () => addClicksToOnlineHandler());
+            addMyClicks.addEventListener('click', () => addMyClicksHandler());
+            createEvent.addEventListener('click', showEventModal);
+            
+            // Модалки админа
+            adminSave.addEventListener('click', saveUserChanges);
+            adminDelete.addEventListener('click', deleteUser);
+            toggleVerified.addEventListener('click', toggleUserVerified);
+            adminCancel.addEventListener('click', hideAdminModal);
+            closeAdminModal.addEventListener('click', hideAdminModal);
+            
+            // Модалка событий
+            startEvent.addEventListener('click', startEventHandler);
+            stopEvent.addEventListener('click', stopEventHandler);
+            cancelEvent.addEventListener('click', hideEventModal);
+            closeEventModal.addEventListener('click', hideEventModal);
+            
+            // Модалка кастомных кликов
+            confirmCustomClicks.addEventListener('click', confirmCustomClicksHandler);
+            cancelCustomClicks.addEventListener('click', hideCustomClicksModal);
+            closeCustomClicksModal.addEventListener('click', hideCustomClicksModal);
+            
+            // Чат
+            sendMessage.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+            
+            // Друзья
+            addFriendBtn.addEventListener('click', showFriendsModal);
+            refreshFriends.addEventListener('click', loadFriends);
+            searchFriend.addEventListener('click', searchFriendHandler);
+            cancelFriend.addEventListener('click', hideFriendsModal);
+            closeFriendsModal.addEventListener('click', hideFriendsModal);
+        }
+
+        // Обработка клика
+        function handleClick() {
+            if (isBlocked) return;
+            
+            const now = Date.now();
+            clickTimestamps.push(now);
+            
+            // Удаление старых кликов (старше 1 секунды)
+            clickTimestamps = clickTimestamps.filter(timestamp => now - timestamp < 1000);
+            
+            // Проверка CPS
+            currentCPS = clickTimestamps.length;
+            if (currentCPS > MAX_CPS) {
+                blockUser();
+                return;
+            }
+            
+            // Обновление состояния игры
+            const clickValue = 1 * gameState.clickMultiplier;
+            gameState.clicks += clickValue;
+            
+            if (gameState.clicks > gameState.bestScore) {
+                gameState.bestScore = gameState.clicks;
+            }
+            
+            // Обновление отображения
+            updateGameDisplay();
+            
+            // Сохранение состояния
+            saveGameState();
+            
+            // Анимация клика
+            animateClick();
+        }
+
+        // Блокировка пользователя за слишком быстрые клики
+        function blockUser() {
+            isBlocked = true;
+            clickArea.classList.add('blocked');
+            blockedOverlay.style.display = 'flex';
+            cpsWarning.textContent = `СЛИШКОМ БЫСТРО! Подождите ${MAX_CPS/2} секунд`;
+            
+            blockTimeout = setTimeout(() => {
+                isBlocked = false;
+                clickArea.classList.remove('blocked');
+                blockedOverlay.style.display = 'none';
+                cpsWarning.textContent = '';
+                clickTimestamps = [];
+            }, (MAX_CPS/2) * 1000);
+        }
+
+        // Обновление CPS
+        function updateCPS() {
+            const now = Date.now();
+            clickTimestamps = clickTimestamps.filter(timestamp => now - timestamp < 1000);
+            currentCPS = clickTimestamps.length;
+            
+            cpsValue.textContent = currentCPS;
+            
+            // Обновление индикатора CPS
+            const cpsPercentage = Math.min((currentCPS / MAX_CPS) * 100, 100);
+            cpsFill.style.width = `${cpsPercentage}%`;
+            
+            // Цвет индикатора в зависимости от CPS
+            if (currentCPS > MAX_CPS * 0.8) {
+                cpsFill.style.background = 'linear-gradient(90deg, #FFC107, #F44336)';
+            } else if (currentCPS > MAX_CPS * 0.5) {
+                cpsFill.style.background = 'linear-gradient(90deg, #4CAF50, #FFC107)';
+            } else {
+                cpsFill.style.background = 'linear-gradient(90deg, #4CAF50, #4CAF50)';
+            }
+        }
+
+        // Анимация клика
+        function animateClick() {
+            clickText.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                clickText.style.transform = 'scale(1)';
+            }, 100);
+        }
+
+        // Обновление отображения игры
+        function updateGameDisplay() {
+            clickCount.textContent = Math.floor(gameState.clicks);
+            bestScore.textContent = Math.floor(gameState.bestScore);
+        }
+
+        // Загрузка состояния игры
+        function loadGameState() {
+            // Если пользователь авторизован, загружаем из Firebase
+            if (auth.currentUser) {
+                loadUserData(auth.currentUser.uid);
+            } else {
+                // Иначе загружаем из localStorage
+                const savedState = localStorage.getItem('clickerGameState');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    gameState.clicks = parsedState.clicks || 0;
+                    gameState.bestScore = parsedState.bestScore || 0;
+                    updateGameDisplay();
+                }
+            }
+        }
+
+        // Сохранение состояния игры
+        function saveGameState() {
+            if (auth.currentUser) {
+                // Сохраняем в Firebase
+                const userRef = database.ref('users/' + auth.currentUser.uid);
+                userRef.update({
+                    clicks: Math.floor(gameState.clicks),
+                    bestScore: Math.floor(gameState.bestScore),
+                    lastActive: Date.now()
+                });
+            } else {
+                // Сохраняем в localStorage
+                localStorage.setItem('clickerGameState', JSON.stringify({
+                    clicks: gameState.clicks,
+                    bestScore: gameState.bestScore
+                }));
+            }
+        }
+
+        // Загрузка данных пользователя
+        function loadUserData(userId) {
+            const userRef = database.ref('users/' + userId);
+            userRef.on('value', snapshot => {
+                const userData = snapshot.val();
+                if (userData) {
+                    gameState.clicks = userData.clicks || 0;
+                    gameState.bestScore = userData.bestScore || 0;
+                    
+                    // Обновление UI пользователя
+                    userName.textContent = userData.nickname || userData.email.split('@')[0];
+                    userAvatar.textContent = (userData.nickname || userData.email[0]).toUpperCase();
+                    
+                    if (userData.verified) {
+                        userVerified.style.display = 'inline';
+                    } else {
+                        userVerified.style.display = 'none';
+                    }
+                    
+                    changeNickname.style.display = 'block';
+                    
+                    updateGameDisplay();
+                }
+            });
+        }
+
+        // Загрузка лидерборда
+        function loadLeaderboard() {
+            const usersRef = database.ref('users');
+            usersRef.orderByChild('bestScore').limitToLast(leaderboardLimit === 0 ? 1000 : leaderboardLimit).on('value', snapshot => {
+                const users = snapshot.val();
+                const leaderboardArray = [];
+                
+                for (let userId in users) {
+                    if (users[userId].bestScore > 0) {
+                        leaderboardArray.push({
+                            id: userId,
+                            email: users[userId].email,
+                            nickname: users[userId].nickname,
+                            clicks: users[userId].clicks || 0,
+                            bestScore: users[userId].bestScore || 0,
+                            verified: users[userId].verified || false
+                        });
+                    }
+                }
+                
+                // Сортировка по bestScore (по убыванию)
+                leaderboardArray.sort((a, b) => b.bestScore - a.bestScore);
+                
+                // Ограничение количества записей
+                if (leaderboardLimit > 0) {
+                    leaderboardArray.splice(leaderboardLimit);
+                }
+                
+                // Отрисовка лидерборда
+                renderLeaderboard(leaderboardArray);
+            });
+        }
+
+        // Отрисовка лидерборда
+        function renderLeaderboard(users) {
+            leaderboard.innerHTML = '';
+            
+            users.forEach((user, index) => {
+                const isCurrentUser = auth.currentUser && user.id === auth.currentUser.uid;
+                const listItem = document.createElement('li');
+                listItem.className = `leaderboard-item ${isCurrentUser ? 'current-user' : ''}`;
+                
+                listItem.innerHTML = `
+                    <div class="rank">${index + 1}</div>
+                    <div class="player-name">
+                        <span>${user.nickname || user.email.split('@')[0]}</span>
+                        ${user.verified ? '<span class="verified-badge">✓</span>' : ''}
+                        ${isCurrentUser ? '<span style="color: #fdbb2d; margin-left: 5px;">(Вы)</span>' : ''}
+                    </div>
+                    <div class="player-score">${Math.floor(user.bestScore)}</div>
+                `;
+                
+                if (isAdmin) {
+                    const adminBtn = document.createElement('button');
+                    adminBtn.textContent = 'Ред.';
+                    adminBtn.style.padding = '5px 10px';
+                    adminBtn.style.fontSize = '0.7rem';
+                    adminBtn.addEventListener('click', () => editUser(user));
+                    listItem.appendChild(adminBtn);
+                }
+                
+                leaderboard.appendChild(listItem);
+            });
+            
+            // Если нет пользователей
+            if (users.length === 0) {
+                const listItem = document.createElement('li');
+                listItem.className = 'leaderboard-item';
+                listItem.innerHTML = '<div style="text-align: center; width: 100%;">Нет данных для отображения</div>';
+                leaderboard.appendChild(listItem);
+            }
+        }
+
+        // Изменение лимита лидерборда
+        function changeLeaderboardLimit(limit) {
+            leaderboardLimit = limit;
+            
+            // Обновление активной кнопки
+            showTop10.classList.remove('active');
+            showTop25.classList.remove('active');
+            showAll.classList.remove('active');
+            
+            if (limit === 10) showTop10.classList.add('active');
+            if (limit === 25) showTop25.classList.add('active');
+            if (limit === 0) showAll.classList.add('active');
+            
+            // Перезагрузка лидерборда
+            loadLeaderboard();
+        }
+
+        // Показать модальное окно аутентификации
+        function showAuthModal(type) {
+            authModal.style.display = 'flex';
+            if (type === 'login') {
+                authModalTitle.textContent = 'Вход в аккаунт';
+                authSubmit.textContent = 'Войти';
+            } else {
+                authModalTitle.textContent = 'Регистрация аккаунта';
+                authSubmit.textContent = 'Зарегистрироваться';
+            }
+            
+            currentAction = type;
+        }
+
+        // Скрыть модальное окно аутентификации
+        function hideAuthModal() {
+            authModal.style.display = 'none';
+            authEmail.value = '';
+            authPassword.value = '';
+        }
+
+        // Обработка аутентификации
+        function handleAuthSubmit() {
+            const email = authEmail.value;
+            const password = authPassword.value;
+            
+            if (!email || !password) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            if (currentAction === 'login') {
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        hideAuthModal();
+                    })
+                    .catch(error => {
+                        alert('Ошибка входа: ' + error.message);
+                    });
+            } else {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then(userCredential => {
+                        // Создание записи пользователя в базе данных
+                        const user = userCredential.user;
+                        const userRef = database.ref('users/' + user.uid);
+                        
+                        userRef.set({
+                            email: email,
+                            nickname: email.split('@')[0],
+                            clicks: 0,
+                            bestScore: 0,
+                            registered: Date.now(),
+                            lastActive: Date.now(),
+                            verified: false
+                        });
+                        
+                        hideAuthModal();
+                        showNicknameModal();
+                    })
+                    .catch(error => {
+                        alert('Ошибка регистрации: ' + error.message);
+                    });
+            }
+        }
+
+        // Выход из системы
+        function handleLogout() {
+            auth.signOut();
+        }
+
+        // Показать модальное окно изменения никнейма
+        function showNicknameModal() {
+            if (auth.currentUser) {
+                const userRef = database.ref('users/' + auth.currentUser.uid);
+                userRef.once('value').then(snapshot => {
+                    const userData = snapshot.val();
+                    nicknameInput.value = userData.nickname || '';
+                    nicknameModal.style.display = 'flex';
+                });
+            }
+        }
+
+        // Скрыть модальное окно изменения никнейма
+        function hideNicknameModal() {
+            nicknameModal.style.display = 'none';
+        }
+
+        // Сохранение никнейма
+        function saveNicknameHandler() {
+            const nickname = nicknameInput.value.trim();
+            
+            if (!nickname) {
+                alert('Пожалуйста, введите никнейм');
+                return;
+            }
+            
+            if (nickname.length > 15) {
+                alert('Никнейм не может быть длиннее 15 символов');
+                return;
+            }
+            
+            if (auth.currentUser) {
+                const userRef = database.ref('users/' + auth.currentUser.uid);
+                userRef.update({
+                    nickname: nickname
+                }).then(() => {
+                    hideNicknameModal();
+                    userName.textContent = nickname;
+                    userAvatar.textContent = nickname[0].toUpperCase();
+                });
+            }
+        }
+
+        // Переключение админ панели
+        function toggleAdminPanel() {
+            if (adminSection.style.display === 'none' || !adminSection.style.display) {
+                adminSection.style.display = 'block';
+                loadUserList();
+            } else {
+                adminSection.style.display = 'none';
+            }
+        }
+
+        // Загрузка списка пользователей
+        function loadUserList() {
+            if (!isAdmin) return;
+            
+            const usersRef = database.ref('users');
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                const usersArray = [];
+                
+                for (let userId in users) {
+                    usersArray.push({
+                        id: userId,
+                        email: users[userId].email,
+                        nickname: users[userId].nickname,
+                        clicks: users[userId].clicks || 0,
+                        bestScore: users[userId].bestScore || 0,
+                        verified: users[userId].verified || false,
+                        lastActive: users[userId].lastActive || 0
+                    });
+                }
+                
+                // Сортировка по последней активности
+                usersArray.sort((a, b) => b.lastActive - a.lastActive);
+                
+                // Отрисовка списка пользователей
+                renderUserList(usersArray);
+            });
+        }
+
+        // Отрисовка списка пользователей
+        function renderUserList(users) {
+            userList.innerHTML = '';
+            
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                const lastActive = user.lastActive ? new Date(user.lastActive).toLocaleDateString('ru-RU') : 'Никогда';
+                
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <div>${user.nickname || user.email.split('@')[0]} ${user.verified ? '<span class="verified-badge">✓</span>' : ''}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Клики: ${user.clicks} | Лучший: ${user.bestScore} | Активен: ${lastActive}</div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="edit-user">Ред.</button>
+                    </div>
+                `;
+                
+                const editBtn = userItem.querySelector('.edit-user');
+                editBtn.addEventListener('click', () => editUser(user));
+                
+                userList.appendChild(userItem);
+            });
+        }
+
+        // Редактирование пользователя
+        function editUser(user) {
+            selectedUser = user;
+            adminModalTitle.textContent = `Редактирование: ${user.nickname || user.email.split('@')[0]}`;
+            adminUserInfo.innerHTML = `
+                <div>Email: ${user.email}</div>
+                <div>Никнейм: ${user.nickname || 'Не установлен'}</div>
+                <div>Клики: ${user.clicks}</div>
+                <div>Лучший результат: ${user.bestScore}</div>
+                <div>Верифицирован: ${user.verified ? 'Да' : 'Нет'}</div>
+            `;
+            adminClicksInput.value = user.clicks;
+            adminBestScoreInput.value = user.bestScore;
+            adminModal.style.display = 'flex';
+        }
+
+        // Скрыть модальное окно админа
+        function hideAdminModal() {
+            adminModal.style.display = 'none';
+            selectedUser = null;
+        }
+
+        // Сохранение изменений пользователя
+        function saveUserChanges() {
+            if (!selectedUser) return;
+            
+            const newClicks = parseInt(adminClicksInput.value) || 0;
+            const newBestScore = parseInt(adminBestScoreInput.value) || 0;
+            
+            const userRef = database.ref('users/' + selectedUser.id);
+            userRef.update({
+                clicks: newClicks,
+                bestScore: newBestScore
+            }).then(() => {
+                alert('Изменения сохранены');
+                hideAdminModal();
+                loadUserList();
+                loadLeaderboard();
+            });
+        }
+
+        // Удаление пользователя
+        function deleteUser() {
+            if (!selectedUser || !confirm(`Вы уверены, что хотите удалить пользователя ${selectedUser.email}?`)) {
+                return;
+            }
+            
+            const userRef = database.ref('users/' + selectedUser.id);
+            userRef.remove().then(() => {
+                alert('Пользователь удален');
+                hideAdminModal();
+                loadUserList();
+                loadLeaderboard();
+            });
+        }
+
+        // Переключение верификации пользователя
+        function toggleUserVerified() {
+            if (!selectedUser) return;
+            
+            const userRef = database.ref('users/' + selectedUser.id);
+            userRef.update({
+                verified: !selectedUser.verified
+            }).then(() => {
+                alert(`Верификация ${!selectedUser.verified ? 'включена' : 'отключена'}`);
+                hideAdminModal();
+                loadUserList();
+                loadLeaderboard();
+            });
+        }
+
+        // Сброс всех результатов
+        function resetAllScoresHandler() {
+            if (!confirm('Вы уверены, что хотите обнулить все результаты? Это действие нельзя отменить.')) {
+                return;
+            }
+            
+            const usersRef = database.ref('users');
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                const updates = {};
+                
+                for (let userId in users) {
+                    updates[`${userId}/clicks`] = 0;
+                    updates[`${userId}/bestScore`] = 0;
+                }
+                
+                usersRef.update(updates).then(() => {
+                    alert('Все результаты обнулены');
+                    loadUserList();
+                    loadLeaderboard();
+                    
+                    // Сброс локального состояния
+                    if (auth.currentUser) {
+                        gameState.clicks = 0;
+                        gameState.bestScore = 0;
+                        updateGameDisplay();
+                        saveGameState();
+                    }
+                });
+            });
+        }
+
+        // Удаление неактивных пользователей
+        function deleteInactiveUsers() {
+            if (!confirm('Удалить всех пользователей, которые не были активны более 30 дней?')) {
+                return;
+            }
+            
+            const monthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+            const usersRef = database.ref('users');
+            
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                let deletedCount = 0;
+                
+                for (let userId in users) {
+                    if (!users[userId].lastActive || users[userId].lastActive < monthAgo) {
+                        usersRef.child(userId).remove();
+                        deletedCount++;
+                    }
+                }
+                
+                alert(`Удалено ${deletedCount} неактивных пользователей`);
+                loadUserList();
+                loadLeaderboard();
+            });
+        }
+
+        // Показать модальное окно кастомных кликов
+        function showCustomClicksModal(type) {
+            currentAction = type;
+            
+            if (type === 'all') {
+                customClicksTitle.textContent = 'Добавить клики всем пользователям';
+            } else if (type === 'online') {
+                customClicksTitle.textContent = 'Добавить клики онлайн пользователям';
+            } else if (type === 'me') {
+                customClicksTitle.textContent = 'Добавить клики себе';
+            }
+            
+            customClicksModal.style.display = 'flex';
+        }
+
+        // Скрыть модальное окно кастомных кликов
+        function hideCustomClicksModal() {
+            customClicksModal.style.display = 'none';
+            customClicksInput.value = '';
+        }
+
+        // Обработка добавления кастомных кликов
+        function confirmCustomClicksHandler() {
+            const clicksToAdd = parseInt(customClicksInput.value) || 0;
+            
+            if (clicksToAdd <= 0) {
+                alert('Пожалуйста, введите положительное число');
+                return;
+            }
+            
+            if (currentAction === 'all') {
+                addClicksToAllUsers(clicksToAdd);
+            } else if (currentAction === 'online') {
+                addClicksToOnlineUsers(clicksToAdd);
+            } else if (currentAction === 'me') {
+                addClicksToMe(clicksToAdd);
+            }
+            
+            hideCustomClicksModal();
+        }
+
+        // Добавление кликов всем пользователям
+        function addClicksToAllUsers(clicksToAdd) {
+            const usersRef = database.ref('users');
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                const updates = {};
+                
+                for (let userId in users) {
+                    const currentClicks = users[userId].clicks || 0;
+                    const currentBest = users[userId].bestScore || 0;
+                    const newClicks = currentClicks + clicksToAdd;
+                    const newBest = Math.max(currentBest, newClicks);
+                    
+                    updates[`${userId}/clicks`] = newClicks;
+                    updates[`${userId}/bestScore`] = newBest;
+                }
+                
+                usersRef.update(updates).then(() => {
+                    alert(`Добавлено ${clicksToAdd} кликов всем пользователям`);
+                    loadUserList();
+                    loadLeaderboard();
+                    
+                    // Обновление локального состояния
+                    if (auth.currentUser) {
+                        gameState.clicks += clicksToAdd;
+                        gameState.bestScore = Math.max(gameState.bestScore, gameState.clicks);
+                        updateGameDisplay();
+                        saveGameState();
+                    }
+                });
+            });
+        }
+
+        // Добавление кликов онлайн пользователям
+        function addClicksToOnlineUsers(clicksToAdd) {
+            // В реальном приложении здесь была бы логика определения онлайн пользователей
+            // Для демонстрации добавим клики всем пользователям с последней активностью за последние 10 минут
+            const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+            const usersRef = database.ref('users');
+            
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                const updates = {};
+                let affectedUsers = 0;
+                
+                for (let userId in users) {
+                    if (users[userId].lastActive && users[userId].lastActive > tenMinutesAgo) {
+                        const currentClicks = users[userId].clicks || 0;
+                        const currentBest = users[userId].bestScore || 0;
+                        const newClicks = currentClicks + clicksToAdd;
+                        const newBest = Math.max(currentBest, newClicks);
+                        
+                        updates[`${userId}/clicks`] = newClicks;
+                        updates[`${userId}/bestScore`] = newBest;
+                        affectedUsers++;
+                    }
+                }
+                
+                usersRef.update(updates).then(() => {
+                    alert(`Добавлено ${clicksToAdd} кликов ${affectedUsers} онлайн пользователям`);
+                    loadUserList();
+                    loadLeaderboard();
+                    
+                    // Обновление локального состояния
+                    if (auth.currentUser) {
+                        gameState.clicks += clicksToAdd;
+                        gameState.bestScore = Math.max(gameState.bestScore, gameState.clicks);
+                        updateGameDisplay();
+                        saveGameState();
+                    }
+                });
+            });
+        }
+
+        // Добавление кликов себе
+        function addClicksToMe(clicksToAdd) {
+            if (auth.currentUser) {
+                const userRef = database.ref('users/' + auth.currentUser.uid);
+                userRef.once('value').then(snapshot => {
+                    const userData = snapshot.val();
+                    const currentClicks = userData.clicks || 0;
+                    const currentBest = userData.bestScore || 0;
+                    const newClicks = currentClicks + clicksToAdd;
+                    const newBest = Math.max(currentBest, newClicks);
+                    
+                    userRef.update({
+                        clicks: newClicks,
+                        bestScore: newBest
+                    }).then(() => {
+                        alert(`Добавлено ${clicksToAdd} кликов вашему аккаунту`);
+                        
+                        // Обновление локального состояния
+                        gameState.clicks = newClicks;
+                        gameState.bestScore = newBest;
+                        updateGameDisplay();
+                    });
+                });
+            }
+        }
+
+        // Обработчики быстрых действий с кликами
+        function addClicksToOnlineHandler() {
+            const clicksToAdd = parseInt(clicksToOnlineInput.value) || 0;
+            if (clicksToAdd > 0) {
+                addClicksToOnlineUsers(clicksToAdd);
+            }
+        }
+
+        function addMyClicksHandler() {
+            const clicksToAdd = parseInt(clicksToMeInput.value) || 0;
+            if (clicksToAdd > 0) {
+                addClicksToMe(clicksToAdd);
+            }
+        }
+
+        // Показать модальное окно событий
+        function showEventModal() {
+            eventModal.style.display = 'flex';
+        }
+
+        // Скрыть модальное окно событий
+        function hideEventModal() {
+            eventModal.style.display = 'none';
+        }
+
+        // Запуск события
+        function startEventHandler() {
+            const multiplier = parseFloat(eventMultiplier.value);
+            const duration = parseInt(eventDuration.value);
+            
+            // Сохранение события в базу данных
+            const eventRef = database.ref('currentEvent');
+            eventRef.set({
+                multiplier: multiplier,
+                endTime: Date.now() + (duration * 60 * 1000),
+                active: true
+            }).then(() => {
+                alert(`Событие запущено! Множитель: ${multiplier}x, Длительность: ${duration} минут`);
+                hideEventModal();
+                showEventNotification(multiplier, duration);
+            });
+        }
+
+        // Остановка события
+        function stopEventHandler() {
+            const eventRef = database.ref('currentEvent');
+            eventRef.update({
+                active: false
+            }).then(() => {
+                alert('Событие остановлено');
+                hideEventModal();
+                eventNotification.style.display = 'none';
+            });
+        }
+
+        // Показать уведомление о событии
+        function showEventNotification(multiplier, duration) {
+            const endTime = Date.now() + (duration * 60 * 1000);
+            
+            eventNotification.innerHTML = `
+                <strong>АКТИВНОЕ СОБЫТИЕ!</strong> Все клики умножаются на ${multiplier}x! 
+                Осталось времени: <span id="eventTimer">${duration}:00</span>
+            `;
+            eventNotification.style.display = 'block';
+            
+            // Таймер обратного отсчета
+            const eventTimer = setInterval(() => {
+                const timeLeft = Math.max(0, endTime - Date.now());
+                const minutes = Math.floor(timeLeft / (60 * 1000));
+                const seconds = Math.floor((timeLeft % (60 * 1000)) / 1000);
+                
+                document.getElementById('eventTimer').textContent = 
+                    `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(eventTimer);
+                    eventNotification.style.display = 'none';
+                    gameState.clickMultiplier = 1;
+                }
+            }, 1000);
+            
+            gameState.clickMultiplier = multiplier;
+        }
+
+        // Загрузка и отображение чата
+        function loadChat() {
+            const chatRef = database.ref('chat').limitToLast(50);
+            chatRef.on('value', snapshot => {
+                const messages = snapshot.val();
+                chatMessages.innerHTML = '';
+                
+                if (messages) {
+                    const messagesArray = Object.values(messages);
+                    messagesArray.sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    messagesArray.forEach(message => {
+                        addMessageToChat(message);
+                    });
+                }
+                
+                // Прокрутка вниз
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        // Добавление сообщения в чат
+        function addMessageToChat(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${message.type === 'admin' ? 'admin-action' : ''} ${message.type === 'system' ? 'system' : ''}`;
+            
+            const senderSpan = document.createElement('div');
+            senderSpan.className = 'message-sender';
+            
+            const senderName = document.createElement('span');
+            senderName.textContent = message.senderName;
+            
+            senderSpan.appendChild(senderName);
+            
+            if (message.verified) {
+                const verifiedBadge = document.createElement('span');
+                verifiedBadge.className = 'verified-badge';
+                verifiedBadge.textContent = '✓';
+                senderSpan.appendChild(verifiedBadge);
+            }
+            
+            if (message.type === 'admin') {
+                const adminBadge = document.createElement('span');
+                adminBadge.className = 'admin-badge-chat';
+                adminBadge.textContent = 'ADMIN';
+                senderSpan.appendChild(adminBadge);
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            textDiv.textContent = message.text;
+            
+            messageDiv.appendChild(senderSpan);
+            messageDiv.appendChild(textDiv);
+            
+            chatMessages.appendChild(messageDiv);
+        }
+
+        // Отправка сообщения в чат
+        function sendChatMessage() {
+            if (!auth.currentUser) {
+                alert('Войдите в систему, чтобы отправлять сообщения');
+                return;
+            }
+            
+            const messageText = chatInput.value.trim();
+            if (!messageText) return;
+            
+            if (messageText.length > 200) {
+                alert('Сообщение не может быть длиннее 200 символов');
+                return;
+            }
+            
+            // Получение данных пользователя
+            const userRef = database.ref('users/' + auth.currentUser.uid);
+            userRef.once('value').then(snapshot => {
+                const userData = snapshot.val();
+                
+                // Сохранение сообщения
+                const chatRef = database.ref('chat').push();
+                chatRef.set({
+                    senderId: auth.currentUser.uid,
+                    senderName: userData.nickname || userData.email.split('@')[0],
+                    text: messageText,
+                    timestamp: Date.now(),
+                    type: isAdmin ? 'admin' : 'user',
+                    verified: userData.verified || false
+                }).then(() => {
+                    chatInput.value = '';
+                });
+            });
+        }
+
+        // Загрузка списка друзей
+        function loadFriends() {
+            if (!auth.currentUser) return;
+            
+            const friendsRef = database.ref('friends/' + auth.currentUser.uid);
+            friendsRef.on('value', snapshot => {
+                const friends = snapshot.val();
+                friendsList.innerHTML = '';
+                
+                if (friends) {
+                    // Получение данных о каждом друге
+                    Object.keys(friends).forEach(friendId => {
+                        const userRef = database.ref('users/' + friendId);
+                        userRef.once('value').then(snapshot => {
+                            const userData = snapshot.val();
+                            if (userData) {
+                                addFriendToList(friendId, userData, friends[friendId]);
+                            }
+                        });
+                    });
+                } else {
+                    friendsList.innerHTML = '<div style="text-align: center; padding: 20px;">У вас пока нет друзей</div>';
+                }
+            });
+        }
+
+        // Добавление друга в список
+        function addFriendToList(friendId, userData, status) {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'friend-item';
+            friendItem.id = `friend-${friendId}`;
+            
+            const friendInfo = document.createElement('div');
+            friendInfo.className = 'friend-info';
+            
+            const friendAvatar = document.createElement('div');
+            friendAvatar.className = 'friend-avatar';
+            friendAvatar.textContent = (userData.nickname || userData.email[0]).toUpperCase();
+            
+            const friendName = document.createElement('div');
+            friendName.innerHTML = `
+                <div>${userData.nickname || userData.email.split('@')[0]} ${userData.verified ? '<span class="verified-badge">✓</span>' : ''}</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">Клики: ${userData.clicks || 0} | Лучший: ${userData.bestScore || 0}</div>
+            `;
+            
+            friendInfo.appendChild(friendAvatar);
+            friendInfo.appendChild(friendName);
+            
+            const friendActions = document.createElement('div');
+            friendActions.className = 'friend-actions';
+            
+            if (status === 'pending') {
+                const acceptBtn = document.createElement('button');
+                acceptBtn.textContent = 'Принять';
+                acceptBtn.addEventListener('click', () => acceptFriendRequest(friendId));
+                
+                const declineBtn = document.createElement('button');
+                declineBtn.textContent = 'Отклонить';
+                declineBtn.addEventListener('click', () => removeFriend(friendId));
+                
+                friendActions.appendChild(acceptBtn);
+                friendActions.appendChild(declineBtn);
+            } else {
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Удалить';
+                removeBtn.addEventListener('click', () => removeFriend(friendId));
+                
+                friendActions.appendChild(removeBtn);
+            }
+            
+            friendItem.appendChild(friendInfo);
+            friendItem.appendChild(friendActions);
+            
+            friendsList.appendChild(friendItem);
+        }
+
+        // Показать модальное окно добавления друга
+        function showFriendsModal() {
+            if (!auth.currentUser) {
+                alert('Войдите в систему, чтобы добавлять друзей');
+                return;
+            }
+            
+            friendsModal.style.display = 'flex';
+            friendSearchResults.innerHTML = '';
+        }
+
+        // Скрыть модальное окно добавления друга
+        function hideFriendsModal() {
+            friendsModal.style.display = 'none';
+            friendSearchInput.value = '';
+            friendSearchResults.innerHTML = '';
+        }
+
+        // Поиск друга
+        function searchFriendHandler() {
+            const searchTerm = friendSearchInput.value.trim().toLowerCase();
+            if (!searchTerm) {
+                alert('Введите email или никнейм для поиска');
+                return;
+            }
+            
+            const usersRef = database.ref('users');
+            usersRef.once('value').then(snapshot => {
+                const users = snapshot.val();
+                const results = [];
+                
+                for (let userId in users) {
+                    if (userId === auth.currentUser.uid) continue; // Пропустить себя
+                    
+                    const user = users[userId];
+                    const emailMatch = user.email.toLowerCase().includes(searchTerm);
+                    const nicknameMatch = user.nickname && user.nickname.toLowerCase().includes(searchTerm);
+                    
+                    if (emailMatch || nicknameMatch) {
+                        results.push({
+                            id: userId,
+                            email: user.email,
+                            nickname: user.nickname,
+                            clicks: user.clicks || 0,
+                            bestScore: user.bestScore || 0,
+                            verified: user.verified || false
+                        });
+                    }
+                }
+                
+                displayFriendSearchResults(results);
+            });
+        }
+
+        // Отображение результатов поиска друзей
+        function displayFriendSearchResults(results) {
+            friendSearchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                friendSearchResults.innerHTML = '<div style="text-align: center; padding: 10px;">Пользователи не найдены</div>';
+                return;
+            }
+            
+            results.forEach(user => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'user-item';
+                resultItem.style.marginBottom = '10px';
+                
+                resultItem.innerHTML = `
+                    <div class="user-info">
+                        <div>${user.nickname || user.email.split('@')[0]} ${user.verified ? '<span class="verified-badge">✓</span>' : ''}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Клики: ${user.clicks} | Лучший: ${user.bestScore}</div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="add-friend">Добавить</button>
+                    </div>
+                `;
+                
+                const addBtn = resultItem.querySelector('.add-friend');
+                addBtn.addEventListener('click', () => sendFriendRequest(user.id));
+                
+                friendSearchResults.appendChild(resultItem);
+            });
+        }
+
+        // Отправка запроса на дружбу
+        function sendFriendRequest(friendId) {
+            const myFriendsRef = database.ref('friends/' + auth.currentUser.uid + '/' + friendId);
+            const theirFriendsRef = database.ref('friends/' + friendId + '/' + auth.currentUser.uid);
+            
+            // Проверка, не отправили ли мы уже запрос
+            myFriendsRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    alert('Вы уже отправили запрос этому пользователю');
+                    return;
+                }
+                
+                // Отправка запроса
+                myFriendsRef.set('pending').then(() => {
+                    theirFriendsRef.set('request').then(() => {
+                        alert('Запрос на дружбу отправлен');
+                        hideFriendsModal();
+                    });
+                });
+            });
+        }
+
+        // Принятие запроса на дружбу
+        function acceptFriendRequest(friendId) {
+            const myFriendsRef = database.ref('friends/' + auth.currentUser.uid + '/' + friendId);
+            const theirFriendsRef = database.ref('friends/' + friendId + '/' + auth.currentUser.uid);
+            
+            myFriendsRef.set('accepted').then(() => {
+                theirFriendsRef.set('accepted').then(() => {
+                    alert('Запрос на дружбу принят');
+                    loadFriends();
+                });
+            });
+        }
+
+        // Удаление друга
+        function removeFriend(friendId) {
+            if (!confirm('Удалить этого пользователя из друзей?')) {
+                return;
+            }
+            
+            const myFriendsRef = database.ref('friends/' + auth.currentUser.uid + '/' + friendId);
+            const theirFriendsRef = database.ref('friends/' + friendId + '/' + auth.currentUser.uid);
+            
+            myFriendsRef.remove().then(() => {
+                theirFriendsRef.remove().then(() => {
+                    alert('Пользователь удален из друзей');
+                    loadFriends();
+                });
+            });
+        }
+
+        // Запуск приложения
+        initApp();
+    </script>
+</body>
+</html>
