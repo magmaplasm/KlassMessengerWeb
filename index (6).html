@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FireChat - Мессенджер</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1f2937">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FireChat">
+    <meta name="application-name" content="FireChat">
+    <meta name="msapplication-TileColor" content="#f97316">
+    <meta name="description" content="Мессенджер на Firebase">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkZpcmVDaGF0IC0g0JzQtdGB0YHQtdC90LTQttC10YAiLAogICJzaG9ydF9uYW1lIjogIkZpcmVDaGF0IiwKICAiZGVzY3JpcHRpb24iOiAi0JzQtdGB0YHQtdC90LTQttC10YAg0L3QsCBGaXJlYmFzZSIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzExMTgyNyIsCiAgInRoZW1lX2NvbG9yIjogIiMxZjI5MzciLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCclM0UlM0NyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyByeD0nMjAnIGZpbGw9JyVjMmY5NzMxNiclMkYlM0UlM0N0ZXh0IHg9JzUwJyB5PSc2NScgZm9udC1zaXplPSc1MCcgdGV4dC1hbmNob3I9J21pZGRsZSclM0UlRjAlOUYlOTQlQTUlM0MlMkZ0ZXh0JTNFJTNDJTJGc3ZnJTNFIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .message-enter { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .typing-indicator span {
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #1f2937; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        .online-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loader {
+            border: 3px solid #374151;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen">
+    <!-- Экран загрузки -->
+    <div id="loadingScreen" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-400">Подключение к Firebase...</p>
+        </div>
+    </div>
+
+    <!-- Экран авторизации -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">🔥 FireChat</h1>
+                <p class="text-gray-400">Войдите, чтобы начать общение</p>
+            </div>
+            
+            <div id="authTabs" class="flex mb-6 bg-gray-700 rounded-xl p-1">
+                <button onclick="showTab('login')" id="loginTab" class="flex-1 py-2 rounded-lg text-white font-medium bg-orange-500">Вход</button>
+                <button onclick="showTab('register')" id="registerTab" class="flex-1 py-2 rounded-lg text-gray-400 font-medium">Регистрация</button>
+            </div>
+            
+            <form id="authForm" class="space-y-4">
+                <div id="nameField" class="hidden">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Имя</label>
+                    <input type="text" id="userName" placeholder="Ваше имя" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input type="email" id="userEmail" placeholder="example@mail.com" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Пароль</label>
+                    <input type="password" id="userPassword" placeholder="••••••••" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                
+                <div id="authError" class="text-red-400 text-sm hidden"></div>
+                
+                <button type="submit" id="authBtn" class="w-full py-4 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+                    <span id="authBtnText">Войти</span>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-500 text-sm">Powered by Firebase 🔥</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной экран мессенджера -->
+    <div id="chatScreen" class="min-h-screen flex hidden">
+        <!-- Боковая панель -->
+        <div id="sidebar" class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col max-md:absolute max-md:z-50 max-md:h-full max-md:hidden">
+            <!-- Заголовок -->
+            <div class="p-4 border-b border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-xl font-bold text-white">🔥 FireChat</h1>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                        <button onclick="logout()" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700" title="Выйти">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Профиль пользователя -->
+                <div class="flex items-center space-x-3 p-3 bg-gray-700/50 rounded-xl">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold" id="userAvatar">U</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-white font-medium truncate" id="currentUserName">Пользователь</p>
+                        <p class="text-green-400 text-sm flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2 online-pulse"></span>
+                            В сети
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Поиск пользователей -->
+            <div class="p-4">
+                <div class="relative">
+                    <input type="text" id="searchUsers" placeholder="Поиск пользователей..." oninput="searchUsers(this.value)" class="w-full px-4 py-3 pl-10 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Список пользователей -->
+            <div class="flex-1 overflow-y-auto scrollbar-thin px-4" id="usersList">
+                <p class="text-gray-500 text-sm mb-2">Пользователи онлайн</p>
+            </div>
+            
+            <!-- Общий чат -->
+            <div class="p-4 border-t border-gray-700">
+                <button onclick="openChat('general', 'Общий чат')" id="generalChatBtn" class="w-full flex items-center space-x-3 p-3 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-xl hover:from-orange-500/30 hover:to-yellow-500/30 transition-colors border border-orange-500/30">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 text-left">
+                        <p class="text-white font-medium">Общий чат</p>
+                        <p class="text-gray-400 text-sm">Все пользователи</p>
+                    </div>
+                    <span id="generalUnread" class="hidden bg-orange-500 text-white text-xs px-2 py-1 rounded-full">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Область чата -->
+        <div class="flex-1 flex flex-col bg-gray-900">
+            <!-- Заголовок чата -->
+            <div id="chatHeader" class="p-4 bg-gray-800 border-b border-gray-700 flex items-center space-x-4">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <div id="chatInfo" class="flex items-center space-x-3">
+                    <div id="chatAvatar" class="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-semibold" id="chatTitle">Общий чат</h2>
+                        <p class="text-gray-400 text-sm" id="chatSubtitle">Онлайн: <span id="onlineCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Сообщения -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin" id="messagesContainer">
+                <div class="flex justify-center">
+                    <span class="px-4 py-2 bg-gray-800 rounded-full text-gray-400 text-sm">Добро пожаловать в чат!</span>
+                </div>
+            </div>
+
+            <!-- Индикатор печати -->
+            <div id="typingIndicator" class="px-4 py-2 hidden">
+                <div class="flex items-center space-x-2 text-gray-400">
+                    <div class="typing-indicator flex space-x-1">
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                    </div>
+                    <span class="text-sm" id="typingUser">Кто-то печатает...</span>
+                </div>
+            </div>
+
+            <!-- Поле ввода -->
+            <div class="p-4 bg-gray-800 border-t border-gray-700">
+                <form id="messageForm" class="flex items-center space-x-4">
+                    <button type="button" onclick="addEmoji()" class="p-3 text-gray-400 hover:text-white rounded-xl hover:bg-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </button>
+                    <input type="text" id="messageInput" placeholder="Введите сообщение..." class="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500" autocomplete="off">
+                    <button type="submit" class="p-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-xl hover:opacity-90 transition-opacity">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emoji picker -->
+    <div id="emojiPicker" class="hidden fixed bottom-24 left-4 bg-gray-800 rounded-xl p-3 shadow-2xl border border-gray-700 z-50">
+        <div class="grid grid-cols-8 gap-2">
+            <button onclick="insertEmoji('😀')" class="text-2xl hover:bg-gray-700 rounded p-1">😀</button>
+            <button onclick="insertEmoji('😂')" class="text-2xl hover:bg-gray-700 rounded p-1">😂</button>
+            <button onclick="insertEmoji('😍')" class="text-2xl hover:bg-gray-700 rounded p-1">😍</button>
+            <button onclick="insertEmoji('🤔')" class="text-2xl hover:bg-gray-700 rounded p-1">🤔</button>
+            <button onclick="insertEmoji('😎')" class="text-2xl hover:bg-gray-700 rounded p-1">😎</button>
+            <button onclick="insertEmoji('👍')" class="text-2xl hover:bg-gray-700 rounded p-1">👍</button>
+            <button onclick="insertEmoji('❤️')" class="text-2xl hover:bg-gray-700 rounded p-1">❤️</button>
+            <button onclick="insertEmoji('🔥')" class="text-2xl hover:bg-gray-700 rounded p-1">🔥</button>
+            <button onclick="insertEmoji('👋')" class="text-2xl hover:bg-gray-700 rounded p-1">👋</button>
+            <button onclick="insertEmoji('🎉')" class="text-2xl hover:bg-gray-700 rounded p-1">🎉</button>
+            <button onclick="insertEmoji('💪')" class="text-2xl hover:bg-gray-700 rounded p-1">💪</button>
+            <button onclick="insertEmoji('🙏')" class="text-2xl hover:bg-gray-700 rounded p-1">🙏</button>
+            <button onclick="insertEmoji('😊')" class="text-2xl hover:bg-gray-700 rounded p-1">😊</button>
+            <button onclick="insertEmoji('🤝')" class="text-2xl hover:bg-gray-700 rounded p-1">🤝</button>
+            <button onclick="insertEmoji('✨')" class="text-2xl hover:bg-gray-700 rounded p-1">✨</button>
+            <button onclick="insertEmoji('🚀')" class="text-2xl hover:bg-gray-700 rounded p-1">🚀</button>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDz77Oq7_-xFhsidbjrsqAqdkmPW7IbRss",
+            authDomain: "messengerdod.firebaseapp.com",
+            // Попробуем стандартный URL, но если не работает - нужно проверить в консоли
+            databaseURL: "https://messengerdod-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "messengerdod",
+            storageBucket: "messengerdod.firebasestorage.app",
+            messagingSenderId: "788226343834",
+            appId: "1:788226343834:web:5d6b540d088ab8f703b023",
+            measurementId: "G-J5Z80F7RY4"
+        };
+
+        // Состояние приложения
+        let app = {
+            auth: null,
+            database: null,
+            currentUser: null,
+            currentChat: null, // Изначально null
+            currentChatName: 'Общий чат',
+            messages: {},
+            users: {},
+            activeListeners: [] // Массив активных слушателей
+        };
+
+        // Инициализация Firebase
+        function initApp() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                app.auth = firebase.auth();
+                app.database = firebase.database();
+                
+                setupAuthListener();
+                checkDatabaseConnection();
+            } catch (error) {
+                console.error('Ошибка инициализации Firebase:', error);
+                alert('Ошибка подключения к Firebase: ' + error.message);
+            }
+        }
+
+        // Проверка подключения к БД
+        function checkDatabaseConnection() {
+            const connectedRef = app.database.ref('.info/connected');
+            let isConnected = false;
+            
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    isConnected = true;
+                    console.log('Подключено к базе данных');
+                    document.getElementById('dbErrorBanner')?.remove();
+                } else {
+                    console.log('Отключено от базы данных');
+                }
+            });
+
+            setTimeout(() => {
+                if (!isConnected && app.currentUser) {
+                    showDbError();
+                }
+            }, 5000);
+        }
+
+        function showDbError() {
+            if (document.getElementById('dbErrorBanner')) return;
+            
+            const banner = document.createElement('div');
+            banner.id = 'dbErrorBanner';
+            banner.className = 'fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[100] shadow-lg flex justify-between items-center';
+            banner.innerHTML = `
+                <div>
+                    <p class="font-bold">⚠️ Нет подключения к базе данных</p>
+                    <p class="text-sm opacity-90">Проверьте, создали ли вы Realtime Database в консоли Firebase и правильный ли URL.</p>
+                </div>
+                <button onclick="this.parentElement.remove()" class="p-2 hover:bg-red-700 rounded">✕</button>
+            `;
+            document.body.appendChild(banner);
+        }
+
+        // Слушатель авторизации
+        function setupAuthListener() {
+            app.auth.onAuthStateChanged(async user => {
+                if (user) {
+                    app.currentUser = user;
+                    
+                    // Создаём/обновляем профиль пользователя в базе при каждом входе
+                    const userRef = app.database.ref('users/' + user.uid);
+                    const snapshot = await userRef.once('value');
+                    
+                    if (!snapshot.exists()) {
+                        // Создаём профиль если его нет
+                        await userRef.set({
+                            name: user.displayName || user.email.split('@')[0],
+                            email: user.email,
+                            online: true,
+                            lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                            createdAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    } else {
+                        // Обновляем статус онлайн
+                        await userRef.update({
+                            online: true,
+                            lastSeen: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+                    
+                    showScreen('chat');
+                    setupPresence();
+                    loadUsers();
+                    openChat('general', 'Общий чат');
+                } else {
+                    app.currentUser = null;
+                    showScreen('auth');
+                }
+            });
+        }
+
+        // Переключение экранов
+        function showScreen(screen) {
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('chatScreen').classList.add('hidden');
+            
+            if (screen === 'auth') {
+                document.getElementById('authScreen').classList.remove('hidden');
+            } else if (screen === 'chat') {
+                document.getElementById('chatScreen').classList.remove('hidden');
+                updateUserInfo();
+            }
+        }
+
+        // Табы авторизации
+        function showTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const nameField = document.getElementById('nameField');
+            const authBtnText = document.getElementById('authBtnText');
+            
+            if (tab === 'login') {
+                loginTab.classList.add('bg-orange-500', 'text-white');
+                loginTab.classList.remove('text-gray-400');
+                registerTab.classList.remove('bg-orange-500', 'text-white');
+                registerTab.classList.add('text-gray-400');
+                nameField.classList.add('hidden');
+                authBtnText.textContent = 'Войти';
+            } else {
+                registerTab.classList.add('bg-orange-500', 'text-white');
+                registerTab.classList.remove('text-gray-400');
+                loginTab.classList.remove('bg-orange-500', 'text-white');
+                loginTab.classList.add('text-gray-400');
+                nameField.classList.remove('hidden');
+                authBtnText.textContent = 'Зарегистрироваться';
+            }
+        }
+
+        // Обработчик формы авторизации
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            const name = document.getElementById('userName').value;
+            const isRegister = !document.getElementById('nameField').classList.contains('hidden');
+            const errorDiv = document.getElementById('authError');
+            const authBtn = document.getElementById('authBtn');
+            
+            try {
+                errorDiv.classList.add('hidden');
+                authBtn.disabled = true;
+                
+                if (isRegister) {
+                    if (!name.trim()) {
+                        throw { code: 'auth/name-required' };
+                    }
+                    const userCredential = await app.auth.createUserWithEmailAndPassword(email, password);
+                    await userCredential.user.updateProfile({ displayName: name });
+                    await app.database.ref('users/' + userCredential.user.uid).set({
+                        name: name,
+                        email: email,
+                        online: true,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                } else {
+                    await app.auth.signInWithEmailAndPassword(email, password);
+                }
+            } catch (error) {
+                errorDiv.textContent = getErrorMessage(error.code);
+                errorDiv.classList.remove('hidden');
+            } finally {
+                authBtn.disabled = false;
+            }
+        });
+
+        // Сообщения об ошибках
+        function getErrorMessage(code) {
+            const messages = {
+                'auth/email-already-in-use': 'Этот email уже используется',
+                'auth/invalid-email': 'Неверный формат email',
+                'auth/weak-password': 'Пароль слишком слабый (мин. 6 символов)',
+                'auth/user-not-found': 'Пользователь не найден',
+                'auth/wrong-password': 'Неверный пароль',
+                'auth/invalid-credential': 'Неверный email или пароль',
+                'auth/name-required': 'Введите ваше имя',
+                'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже'
+            };
+            return messages[code] || 'Произошла ошибка: ' + code;
+        }
+
+        // Присутствие пользователя
+        function setupPresence() {
+            const userStatusRef = app.database.ref('users/' + app.currentUser.uid);
+            const connectedRef = app.database.ref('.info/connected');
+            
+            connectedRef.on('value', snapshot => {
+                if (snapshot.val() === true) {
+                    userStatusRef.update({ 
+                        online: true,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP 
+                    });
+                    userStatusRef.onDisconnect().update({
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+            });
+        }
+
+        // Обновление информации о пользователе
+        function updateUserInfo() {
+            if (!app.currentUser) return;
+            
+            const name = app.currentUser.displayName || app.currentUser.email.split('@')[0] || 'Пользователь';
+            document.getElementById('currentUserName').textContent = name;
+            document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+        }
+
+        // Загрузка пользователей
+        function loadUsers() {
+            const usersRef = app.database.ref('users');
+            document.getElementById('usersList').innerHTML = '<div class="loader mx-auto my-4 w-6 h-6 border-2"></div>';
+            
+            usersRef.on('value', snapshot => {
+                const users = snapshot.val() || {};
+                app.users = users;
+                renderUsersList(users);
+                updateOnlineCount();
+            }, error => {
+                console.error('Ошибка загрузки пользователей:', error);
+                document.getElementById('usersList').innerHTML = 
+                    '<p class="text-red-400 text-sm text-center py-4">Ошибка доступа к данным.<br>Проверьте правила безопасности.</p>';
+            });
+        }
+
+        // Отображение списка пользователей
+        function renderUsersList(users, filter = '') {
+            const container = document.getElementById('usersList');
+            container.innerHTML = '<p class="text-gray-500 text-sm mb-2">Пользователи</p>';
+            
+            const sortedUsers = Object.entries(users)
+                .filter(([uid]) => uid !== app.currentUser.uid)
+                .filter(([uid, user]) => {
+                    if (!filter) return true;
+                    return user.name?.toLowerCase().includes(filter.toLowerCase()) || 
+                           user.email?.toLowerCase().includes(filter.toLowerCase());
+                })
+                .sort((a, b) => (b[1].online ? 1 : 0) - (a[1].online ? 1 : 0));
+            
+            if (sortedUsers.length === 0) {
+                container.innerHTML += '<p class="text-gray-500 text-sm text-center py-4">Пользователи не найдены</p>';
+                return;
+            }
+            
+            sortedUsers.forEach(([uid, user]) => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700/50 cursor-pointer transition-colors mb-2';
+                userDiv.onclick = () => openPrivateChat(uid, user.name || user.email);
+                
+                const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
+                const statusClass = user.online ? 'bg-green-400' : 'bg-gray-500';
+                
+                userDiv.innerHTML = `
+                    <div class="relative">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">${initial}</div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-gray-800"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-white font-medium truncate">${user.name || user.email}</p>
+                        <p class="text-gray-400 text-sm">${user.online ? 'В сети' : 'Не в сети'}</p>
+                    </div>
+                `;
+                
+                container.appendChild(userDiv);
+            });
+        }
+
+        // Поиск пользователей
+        function searchUsers(query) {
+            renderUsersList(app.users, query);
+        }
+
+        // Счетчик онлайн
+        function updateOnlineCount() {
+            const count = Object.values(app.users).filter(u => u.online).length;
+            document.getElementById('onlineCount').textContent = count;
+        }
+
+        // Отключить все слушатели текущего чата
+        function detachAllListeners() {
+            app.activeListeners.forEach(ref => {
+                try {
+                    ref.off();
+                } catch(e) {
+                    console.warn('Ошибка отписки:', e);
+                }
+            });
+            app.activeListeners = [];
+        }
+
+        // Открыть чат
+        function openChat(chatId, chatName, isPrivate = false, partnerUserId = null) {
+            console.log('Открываем чат:', chatId, chatName);
+            
+            // Полная отписка от предыдущего чата
+            detachAllListeners();
+            
+            app.currentChat = chatId;
+            app.currentChatName = chatName;
+            app.currentChatPartner = partnerUserId;
+            
+            document.getElementById('chatTitle').textContent = chatName;
+            
+            if (isPrivate && partnerUserId) {
+                const user = app.users[partnerUserId];
+                document.getElementById('chatSubtitle').textContent = user?.online ? 'В сети' : 'Не в сети';
+                document.getElementById('chatAvatar').innerHTML = chatName.charAt(0).toUpperCase();
+                document.getElementById('chatAvatar').className = 'w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold';
+            } else {
+                document.getElementById('chatSubtitle').innerHTML = 'Онлайн: <span id="onlineCount">' + Object.values(app.users).filter(u => u.online).length + '</span>';
+                document.getElementById('chatAvatar').className = 'w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-bold';
+                document.getElementById('chatAvatar').innerHTML = `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>`;
+            }
+            
+            // Очистка сообщений
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '<div class="flex justify-center"><span class="px-4 py-2 bg-gray-800 rounded-full text-gray-400 text-sm">Загрузка сообщений...</span></div>';
+            
+            // Загрузка сообщений
+            loadMessages(chatId);
+            
+            // Скрыть sidebar на мобильных
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('hidden');
+            }
+        }
+
+        // Открыть приватный чат
+        function openPrivateChat(userId, userName) {
+            const chatId = [app.currentUser.uid, userId].sort().join('_');
+            openChat('private_' + chatId, userName, true, userId);
+        }
+
+        // Загрузка сообщений
+        function loadMessages(chatId) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = ''; // Полная очистка
+            
+            // Сохраняем текущий chatId для проверки
+            const expectedChatId = chatId;
+            
+            // Показываем лоадер
+            const loader = document.createElement('div');
+            loader.id = 'messagesLoader';
+            loader.className = 'flex justify-center py-4';
+            loader.innerHTML = '<span class="px-4 py-2 bg-gray-800 rounded-full text-gray-400 text-sm">Загрузка сообщений...</span>';
+            container.appendChild(loader);
+            
+            const messagesRef = app.database.ref('messages/' + chatId);
+            
+            // Сначала загружаем существующие сообщения
+            messagesRef.orderByChild('timestamp').limitToLast(100).once('value', snapshot => {
+                // Проверяем, что чат не сменился пока грузились
+                if (app.currentChat !== expectedChatId) {
+                    console.log('Чат сменился, игнорируем загруженные сообщения');
+                    return;
+                }
+                
+                const loaderEl = document.getElementById('messagesLoader');
+                if (loaderEl) loaderEl.remove();
+                
+                // Очищаем контейнер перед отображением
+                container.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    const messages = [];
+                    snapshot.forEach(child => {
+                        const msg = child.val();
+                        msg.id = child.key;
+                        messages.push(msg);
+                    });
+                    
+                    // Сортируем по времени и отображаем
+                    messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    messages.forEach(msg => displayMessage(msg, expectedChatId));
+                } else {
+                    container.innerHTML = '<div class="flex justify-center"><span class="px-4 py-2 bg-gray-800 rounded-full text-gray-400 text-sm">Начните общение!</span></div>';
+                }
+                
+                // Подписываемся на новые сообщения
+                const newMsgRef = app.database.ref('messages/' + chatId);
+                newMsgRef.orderByChild('timestamp').startAt(Date.now()).on('child_added', newSnapshot => {
+                    // Проверяем что это всё ещё текущий чат
+                    if (app.currentChat !== expectedChatId) {
+                        return;
+                    }
+                    
+                    const message = newSnapshot.val();
+                    message.id = newSnapshot.key;
+                    
+                    // Проверяем, что сообщение ещё не отображено
+                    if (!document.querySelector(`[data-message-id="${message.id}"]`)) {
+                        // Убираем "Начните общение" если есть
+                        const emptyMsg = container.querySelector('.text-gray-400');
+                        if (emptyMsg && emptyMsg.textContent === 'Начните общение!') {
+                            emptyMsg.closest('div').remove();
+                        }
+                        displayMessage(message, expectedChatId);
+                    }
+                });
+                
+                // Сохраняем ссылку для отписки
+                app.activeListeners.push(newMsgRef);
+                
+            }, error => {
+                console.error('Ошибка загрузки сообщений:', error);
+                container.innerHTML = '<div class="flex justify-center"><span class="px-4 py-2 bg-red-900/50 text-red-400 rounded-full text-sm">Ошибка: ' + error.message + '</span></div>';
+            });
+            
+            // Слушатель печати
+            setupTypingListener(chatId);
+        }
+
+        // Отображение сообщения
+        function displayMessage(message, expectedChatId = null) {
+            // Проверяем, что сообщение для текущего чата
+            if (expectedChatId && app.currentChat !== expectedChatId) {
+                return;
+            }
+            
+            const container = document.getElementById('messagesContainer');
+            const isOwn = message.userId === app.currentUser.uid;
+            
+            // Проверка на дубликат
+            if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+                return;
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isOwn ? 'justify-end' : 'justify-start'} message-enter`;
+            messageDiv.setAttribute('data-message-id', message.id);
+            
+            const time = message.timestamp ? new Date(message.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+            
+            // Получаем имя из сообщения или из списка пользователей
+            let senderName = message.userName || 'Пользователь';
+            if (!isOwn && app.users[message.userId]) {
+                senderName = app.users[message.userId].name || app.users[message.userId].email || senderName;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md xl:max-w-lg">
+                    ${!isOwn ? `<p class="text-xs text-gray-400 mb-1 ml-2">${escapeHtml(senderName)}</p>` : ''}
+                    <div class="${isOwn ? 'bg-gradient-to-r from-orange-500 to-yellow-500' : 'bg-gray-700'} rounded-2xl px-4 py-3 ${isOwn ? 'rounded-tr-sm' : 'rounded-tl-sm'}">
+                        <p class="text-white break-words">${escapeHtml(message.text)}</p>
+                        <p class="text-xs ${isOwn ? 'text-orange-100' : 'text-gray-400'} text-right mt-1">${time}</p>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Экранирование HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Отправка сообщения
+        document.getElementById('messageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            const message = {
+                text: text,
+                userId: app.currentUser.uid,
+                userName: app.currentUser.displayName || app.currentUser.email.split('@')[0] || 'Пользователь',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            
+            try {
+                await app.database.ref('messages/' + app.currentChat).push(message);
+                input.value = '';
+                
+                // Убрать индикатор печати
+                app.database.ref('typing/' + app.currentChat + '/' + app.currentUser.uid).remove();
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+                alert('Ошибка отправки сообщения');
+            }
+        });
+
+        // Индикатор печати
+        let typingTimeout;
+        document.getElementById('messageInput').addEventListener('input', () => {
+            if (!app.currentUser) return;
+            
+            app.database.ref('typing/' + app.currentChat + '/' + app.currentUser.uid).set({
+                name: app.currentUser.displayName || app.currentUser.email.split('@')[0],
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                app.database.ref('typing/' + app.currentChat + '/' + app.currentUser.uid).remove();
+            }, 2000);
+        });
+
+        // Слушатель печати
+        function setupTypingListener(chatId) {
+            app.database.ref('typing/' + chatId).on('value', snapshot => {
+                const typing = snapshot.val() || {};
+                const typingUsers = Object.entries(typing)
+                    .filter(([uid]) => uid !== app.currentUser.uid)
+                    .map(([uid, data]) => data.name);
+                
+                const indicator = document.getElementById('typingIndicator');
+                const typingUser = document.getElementById('typingUser');
+                
+                if (typingUsers.length > 0) {
+                    indicator.classList.remove('hidden');
+                    if (typingUsers.length === 1) {
+                        typingUser.textContent = typingUsers[0] + ' печатает...';
+                    } else {
+                        typingUser.textContent = typingUsers.length + ' человек печатают...';
+                    }
+                } else {
+                    indicator.classList.add('hidden');
+                }
+            });
+        }
+
+        // Emoji
+        function addEmoji() {
+            const picker = document.getElementById('emojiPicker');
+            picker.classList.toggle('hidden');
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+            document.getElementById('emojiPicker').classList.add('hidden');
+        }
+
+        // Закрыть emoji picker при клике вне
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#emojiPicker') && !e.target.closest('button[onclick="addEmoji()"]')) {
+                document.getElementById('emojiPicker').classList.add('hidden');
+            }
+        });
+
+        // Выход
+        async function logout() {
+            console.log('Выход из аккаунта...');
+            
+            // Отписываемся от всех слушателей
+            try {
+                Object.keys(app.messageListeners).forEach(chatId => {
+                    app.database.ref('messages/' + chatId).off();
+                    app.database.ref('typing/' + chatId).off();
+                });
+                app.database.ref('users').off();
+                app.database.ref('.info/connected').off();
+            } catch (e) {
+                console.warn('Ошибка отписки:', e);
+            }
+            
+            // Обновляем статус оффлайн
+            try {
+                if (app.currentUser && app.database) {
+                    await app.database.ref('users/' + app.currentUser.uid).update({ 
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP 
+                    });
+                }
+            } catch (error) {
+                console.warn('Не удалось обновить статус при выходе:', error);
+            }
+            
+            // Выходим
+            try {
+                await app.auth.signOut();
+            } catch (e) {
+                console.error('Ошибка signOut:', e);
+            }
+            
+            // Перезагружаем страницу
+            window.location.reload();
+        }
+
+        // Переключение боковой панели
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // ========== PWA INSTALLATION ==========
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        function showInstallButton() {
+            // Добавляем кнопку установки если её ещё нет
+            if (document.getElementById('installBtn')) return;
+            
+            const btn = document.createElement('button');
+            btn.id = 'installBtn';
+            btn.className = 'fixed bottom-4 right-4 z-50 bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center space-x-2 hover:opacity-90 transition-opacity';
+            btn.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span>Установить приложение</span>
+            `;
+            btn.onclick = installApp;
+            document.body.appendChild(btn);
+        }
+
+        async function installApp() {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('Приложение установлено');
+            }
+            
+            deferredPrompt = null;
+            document.getElementById('installBtn')?.remove();
+        }
+
+        window.addEventListener('appinstalled', () => {
+            console.log('FireChat установлен!');
+            document.getElementById('installBtn')?.remove();
+        });
+
+        // Service Worker регистрация
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
+                const CACHE_NAME = 'firechat-v1';
+                const urlsToCache = ['/'];
+                
+                self.addEventListener('install', (event) => {
+                    self.skipWaiting();
+                });
+                
+                self.addEventListener('activate', (event) => {
+                    event.waitUntil(clients.claim());
+                });
+                
+                self.addEventListener('fetch', (event) => {
+                    event.respondWith(
+                        fetch(event.request).catch(() => caches.match(event.request))
+                    );
+                });
+            `)).catch(err => console.log('SW не зарегистрирован:', err));
+        }
+    </script>
+</body>
+</html>
